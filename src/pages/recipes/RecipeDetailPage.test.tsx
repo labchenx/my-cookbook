@@ -13,7 +13,7 @@ function renderApp(initialEntries: string[] = ['/recipes/1'], initialIndex?: num
 }
 
 describe('RecipeDetailPage', () => {
-  it('renders recipe detail content for a valid id', async () => {
+  it('renders rich text recipe detail content for a valid id', async () => {
     renderApp();
 
     expect(screen.getByText('正在加载菜谱...')).toBeInTheDocument();
@@ -22,9 +22,10 @@ describe('RecipeDetailPage', () => {
       expect(screen.getByRole('heading', { name: '巧克力慕斯蛋糕' })).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('heading', { name: '配料清单' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '配料列表' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '制作步骤' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '小贴士' })).toBeInTheDocument();
+    expect(screen.getByText('黑巧克力', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.getByText('融化巧克力：', { selector: 'strong' })).toBeInTheDocument();
     expect(screen.getAllByText('30分钟')[0]).toBeInTheDocument();
   });
 

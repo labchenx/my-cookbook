@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AppRoutes } from '../../app/AppRoutes';
@@ -12,13 +12,15 @@ function renderApp(initialEntries: string[] = ['/recipes/new']) {
 }
 
 describe('CreateRecipePage', () => {
-  it('renders manual mode by default', () => {
+  it('renders manual mode with rich text editors by default', () => {
     renderApp();
 
     expect(screen.getByRole('heading', { name: '创建菜谱' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '手动编辑' })).toBeInTheDocument();
     expect(screen.getByText('基本信息')).toBeInTheDocument();
-    expect(screen.getByLabelText('菜谱标题')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '菜谱标题' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '配料列表' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '制作步骤' })).toBeInTheDocument();
   });
 
   it('switches to parse mode and shows parse success message', async () => {
@@ -33,28 +35,37 @@ describe('CreateRecipePage', () => {
     });
   });
 
-  it('supports adding and removing ingredients', async () => {
+  it('updates the rich text draft and preserves formatting commands', async () => {
     const user = userEvent.setup();
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     renderApp();
 
-    expect(screen.getAllByPlaceholderText('配料名称')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: '添加配料' }));
-    expect(screen.getAllByPlaceholderText('配料名称')).toHaveLength(2);
+    const ingredientSection = screen.getByRole('heading', { name: '配料列表' }).closest('section');
+    const stepSection = screen.getByRole('heading', { name: '制作步骤' }).closest('section');
 
-    await user.click(screen.getAllByLabelText('删除配料')[1]);
-    expect(screen.getAllByPlaceholderText('配料名称')).toHaveLength(1);
-  });
+    if (!ingredientSection || !stepSection) {
+      throw new Error('Expected rich text sections');
+    }
 
-  it('supports adding and removing steps', async () => {
-    const user = userEvent.setup();
-    renderApp();
+    const ingredientEditor = within(ingredientSection).getByRole('textbox', { name: '配料列表' });
+    const stepEditor = within(stepSection).getByRole('textbox', { name: '制作步骤' });
 
-    expect(screen.getAllByPlaceholderText('描述这一步的操作...')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: '添加步骤' }));
-    expect(screen.getAllByPlaceholderText('描述这一步的操作...')).toHaveLength(2);
+    await user.click(within(ingredientSection).getByRole('button', { name: '加粗' }));
+    await user.click(ingredientEditor);
+    await user.type(ingredientEditor, 'egg - 2');
+    await user.click(stepEditor);
+    await user.type(stepEditor, 'step 1');
 
-    await user.click(screen.getByLabelText('删除步骤 2'));
-    expect(screen.getAllByPlaceholderText('描述这一步的操作...')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: '发布' }));
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      'publish recipe',
+      expect.objectContaining({
+        ingredientsRichText: expect.stringMatching(/^<p><strong>.+<\/strong><\/p>$/),
+        stepsRichText: expect.stringMatching(/^<p>.+<\/p>$/),
+      }),
+    );
+    infoSpy.mockRestore();
   });
 
   it('navigates back to recipes when cancel is clicked', async () => {

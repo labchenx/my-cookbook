@@ -30,7 +30,7 @@ export function ParseRecipeSection({
           粘贴菜谱链接
         </h2>
         <p className="mt-2 text-[14px] leading-5 text-[#827971]">
-          支持主流菜谱网站自动解析
+          支持小红书、抖音等图文和视频内容的 mock 解析
         </p>
       </div>
 

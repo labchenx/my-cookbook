@@ -41,3 +41,30 @@ textarea {
 .cursor-accent-pointer {
   cursor: pointer;
 }
+
+.recipe-rich-text-editor.ProseMirror {
+  height: 100%;
+  outline: none;
+}
+
+.recipe-rich-text-editor.ProseMirror p {
+  margin: 0 0 12px;
+}
+
+.recipe-rich-text-editor.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.recipe-rich-text-editor.ProseMirror ul,
+.recipe-rich-text-editor.ProseMirror ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.recipe-rich-text-editor.ProseMirror li {
+  margin-bottom: 0.5rem;
+}
+
+.recipe-rich-text-editor.ProseMirror li:last-child {
+  margin-bottom: 0;
+}

@@ -1,32 +1,15 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionBar } from '../../components/recipes/ActionBar';
 import { CreateRecipeHeader } from '../../components/recipes/CreateRecipeHeader';
 import { CreateRecipeTabs } from '../../components/recipes/CreateRecipeTabs';
-import { IngredientListEditor } from '../../components/recipes/IngredientListEditor';
 import { ParseRecipeSection } from '../../components/recipes/ParseRecipeSection';
 import { RecipeBasicInfoForm } from '../../components/recipes/RecipeBasicInfoForm';
-import { StepListEditor } from '../../components/recipes/StepListEditor';
-import { TipsEditor } from '../../components/recipes/TipsEditor';
-import type {
-  CreateRecipeMode,
-  IngredientItem,
-  ParseStatus,
-  RecipeDraft,
-  StepItem,
-} from './createRecipeTypes';
-
-function createIngredient(id: string): IngredientItem {
-  return { id, name: '', amount: '' };
-}
-
-function createStep(id: string): StepItem {
-  return { id, description: '', imageName: '' };
-}
+import { RichTextEditor } from '../../components/recipes/RichTextEditor';
+import type { CreateRecipeMode, ParseStatus, RecipeDraft } from './createRecipeTypes';
 
 export function CreateRecipePage() {
   const navigate = useNavigate();
-  const idCounter = useRef(2);
   const [mode, setMode] = useState<CreateRecipeMode>('manual');
   const [parseUrl, setParseUrl] = useState('https://example.com/recipe/123');
   const [parseStatus, setParseStatus] = useState<ParseStatus>('idle');
@@ -37,16 +20,9 @@ export function CreateRecipePage() {
     category: '',
     tagInput: '',
     tags: [],
-    ingredients: [createIngredient('ingredient-1')],
-    steps: [createStep('step-1')],
-    tips: '',
+    ingredientsRichText: '',
+    stepsRichText: '',
   });
-
-  const nextId = (prefix: 'ingredient' | 'step') => {
-    const id = `${prefix}-${idCounter.current}`;
-    idCounter.current += 1;
-    return id;
-  };
 
   const updateDraft = <K extends keyof RecipeDraft>(field: K, value: RecipeDraft[K]) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -70,65 +46,6 @@ export function CreateRecipePage() {
     setDraft((current) => ({
       ...current,
       tags: current.tags.filter((item) => item !== tag),
-    }));
-  };
-
-  const handleAddIngredient = () => {
-    setDraft((current) => ({
-      ...current,
-      ingredients: [...current.ingredients, createIngredient(nextId('ingredient'))],
-    }));
-  };
-
-  const handleChangeIngredient = (id: string, field: 'name' | 'amount', value: string) => {
-    setDraft((current) => ({
-      ...current,
-      ingredients: current.ingredients.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item,
-      ),
-    }));
-  };
-
-  const handleDeleteIngredient = (id: string) => {
-    setDraft((current) => ({
-      ...current,
-      ingredients:
-        current.ingredients.length === 1
-          ? current.ingredients
-          : current.ingredients.filter((item) => item.id !== id),
-    }));
-  };
-
-  const handleAddStep = () => {
-    setDraft((current) => ({
-      ...current,
-      steps: [...current.steps, createStep(nextId('step'))],
-    }));
-  };
-
-  const handleChangeStep = (id: string, value: string) => {
-    setDraft((current) => ({
-      ...current,
-      steps: current.steps.map((item) =>
-        item.id === id ? { ...item, description: value } : item,
-      ),
-    }));
-  };
-
-  const handleSelectStepImage = (id: string, fileName: string) => {
-    setDraft((current) => ({
-      ...current,
-      steps: current.steps.map((item) =>
-        item.id === id ? { ...item, imageName: fileName } : item,
-      ),
-    }));
-  };
-
-  const handleDeleteStep = (id: string) => {
-    setDraft((current) => ({
-      ...current,
-      steps:
-        current.steps.length === 1 ? current.steps : current.steps.filter((item) => item.id !== id),
     }));
   };
 
@@ -197,20 +114,20 @@ export function CreateRecipePage() {
                 onAddTag={handleAddTag}
                 onRemoveTag={handleRemoveTag}
               />
-              <IngredientListEditor
-                ingredients={draft.ingredients}
-                onAdd={handleAddIngredient}
-                onDelete={handleDeleteIngredient}
-                onChange={handleChangeIngredient}
+              <RichTextEditor
+                label="配料列表"
+                helperText="使用列表格式输入配料，例如：鸡蛋 - 2个"
+                value={draft.ingredientsRichText}
+                variant="ingredients"
+                onChange={(value) => updateDraft('ingredientsRichText', value)}
               />
-              <StepListEditor
-                steps={draft.steps}
-                onAdd={handleAddStep}
-                onDelete={handleDeleteStep}
-                onChangeDescription={handleChangeStep}
-                onSelectImage={handleSelectStepImage}
+              <RichTextEditor
+                label="制作步骤"
+                helperText="使用有序列表详细描述每一步的操作过程"
+                value={draft.stepsRichText}
+                variant="steps"
+                onChange={(value) => updateDraft('stepsRichText', value)}
               />
-              <TipsEditor value={draft.tips} onChange={(value) => updateDraft('tips', value)} />
               <ActionBar
                 onCancel={handleCancel}
                 onSaveDraft={handleSaveDraft}

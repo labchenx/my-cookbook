@@ -1,11 +1,9 @@
 import { startTransition, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IngredientList } from '../../components/recipes/IngredientList';
 import { RecipeDetailState } from '../../components/recipes/RecipeDetailState';
 import { RecipeHeader } from '../../components/recipes/RecipeHeader';
 import { RecipeMetaCards } from '../../components/recipes/RecipeMetaCards';
-import { StepList } from '../../components/recipes/StepList';
-import { TipsCard } from '../../components/recipes/TipsCard';
+import { RichTextContent } from '../../components/recipes/RichTextContent';
 import { getRecipeDetailById } from './mockRecipeDetails';
 import type { RecipeDetail, RecipeDetailStatus } from './recipeDetailTypes';
 
@@ -99,15 +97,9 @@ export function RecipeDetailPage() {
             servings={recipe.servings}
           />
 
-          <div className="mt-8 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-[304px_minmax(0,1fr)] md:items-start md:gap-8">
-            <div className="md:sticky md:top-6">
-              <IngredientList ingredients={recipe.ingredients} />
-            </div>
-            <StepList steps={recipe.steps} />
-          </div>
-
-          <div className="mt-8 md:mt-12">
-            <TipsCard tips={recipe.tips} />
+          <div className="mt-8 space-y-6 md:mt-12">
+            <RichTextContent title="配料列表" html={recipe.ingredientsRichText} />
+            <RichTextContent title="制作步骤" html={recipe.stepsRichText} />
           </div>
         </div>
       ) : (
