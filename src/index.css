@@ -21,14 +21,20 @@ html {
 
 body {
   margin: 0;
+  overflow-y: scroll;
 }
 
 input::placeholder {
   color: rgba(45, 37, 32, 0.5);
 }
 
+textarea::placeholder {
+  color: rgba(45, 37, 32, 0.5);
+}
+
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
