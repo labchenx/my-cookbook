@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  color: #2d2520;
+  font-family: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+input::placeholder {
+  color: rgba(45, 37, 32, 0.5);
+}
+
+button,
+input {
+  font: inherit;
+}
