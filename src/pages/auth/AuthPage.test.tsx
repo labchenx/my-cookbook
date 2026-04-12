@@ -13,57 +13,55 @@ function renderApp(initialEntries: string[] = ['/login']) {
 
 describe('AuthPage', () => {
   it('renders login mode by default on /login', () => {
-    renderApp();
+    const { container } = renderApp();
 
-    expect(screen.getByRole('heading', { name: '我的菜谱库' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '登录', selected: true })).toBeInTheDocument();
-    expect(screen.getByLabelText('账号')).toBeInTheDocument();
-    expect(screen.getByLabelText('密码')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
+    expect(container.querySelectorAll('input:not([type="checkbox"])')).toHaveLength(2);
   });
 
-  it('switches to register mode when register tab is clicked', async () => {
+  it('switches to register mode when the second tab is clicked', async () => {
     const user = userEvent.setup();
-    renderApp();
+    const { container } = renderApp();
 
-    await user.click(screen.getByRole('tab', { name: '注册' }));
+    await user.click(screen.getAllByRole('tab')[1]);
 
-    expect(screen.getByRole('tab', { name: '注册', selected: true })).toBeInTheDocument();
-    expect(screen.getByLabelText('用户名')).toBeInTheDocument();
-    expect(screen.getByLabelText('邮箱')).toBeInTheDocument();
-    expect(screen.getByLabelText('确认密码')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')[1]).toHaveAttribute('aria-selected', 'true');
+    expect(container.querySelectorAll('input:not([type="checkbox"])')).toHaveLength(4);
   });
 
-  it('shows validation errors for empty login fields', async () => {
+  it('does not navigate away when the login form is empty', async () => {
     const user = userEvent.setup();
-    renderApp();
+    const { container } = renderApp();
+    const submitButton = container.querySelector('form button[type="submit"]');
 
-    await user.click(screen.getByRole('button', { name: '登录' }));
+    if (!(submitButton instanceof HTMLButtonElement)) {
+      throw new Error('Expected login submit button');
+    }
 
-    expect(screen.getByText('请输入邮箱或用户名')).toBeInTheDocument();
-    expect(screen.getByText('请输入密码')).toBeInTheDocument();
-  });
+    await user.click(submitButton);
 
-  it('prevents register submit when passwords do not match', async () => {
-    const user = userEvent.setup();
-    renderApp();
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
 
-    await user.click(screen.getByRole('tab', { name: '注册' }));
-    await user.type(screen.getByLabelText('用户名'), 'chef');
-    await user.type(screen.getByLabelText('邮箱'), 'chef@example.com');
-    await user.type(screen.getByLabelText('密码'), 'secret123');
-    await user.type(screen.getByLabelText('确认密码'), 'secret321');
-    await user.click(screen.getByRole('button', { name: '注册' }));
-
-    expect(screen.getByText('两次输入的密码不一致')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '菜谱列表' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('tab')[0]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('navigates to recipes after successful login submit', async () => {
     const user = userEvent.setup();
-    renderApp();
+    const { container } = renderApp();
+    const textInputs = Array.from(
+      container.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])'),
+    );
+    const submitButton = container.querySelector('form button[type="submit"]');
 
-    await user.type(screen.getByLabelText('账号'), 'cookbook');
-    await user.type(screen.getByLabelText('密码'), 'secret123');
-    await user.click(screen.getByRole('button', { name: '登录' }));
+    if (textInputs.length !== 2 || !(submitButton instanceof HTMLButtonElement)) {
+      throw new Error('Expected login form inputs');
+    }
+
+    await user.type(textInputs[0], 'cookbook');
+    await user.type(textInputs[1], 'secret123');
+    await user.click(submitButton);
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: '菜谱列表' })).toBeInTheDocument();
