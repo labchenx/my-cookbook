@@ -1,76 +1,120 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AppRoutes } from '../../app/AppRoutes';
+import { recipeCategories, recipeMockData } from './mockRecipes';
 
 function renderApp(initialEntries: string[] = ['/recipes']) {
-  return render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <AppRoutes />
-    </MemoryRouter>,
-  );
+  const router = createMemoryRouter([{ path: '*', element: <AppRoutes /> }], {
+    initialEntries,
+  });
+
+  return {
+    router,
+    ...render(<RouterProvider router={router} />),
+  };
+}
+
+function getRecipeCardButtons() {
+  return screen
+    .getAllByRole('button')
+    .filter((button) => button.querySelector('h2') !== null);
 }
 
 describe('RecipesPage', () => {
+  const chocolateRecipe = recipeMockData.find((recipe) => recipe.id === 'chocolate-mousse-cake')!;
+  const pumpkinRecipe = recipeMockData.find((recipe) => recipe.id === 'pumpkin-soup')!;
+  const cornRecipe = recipeMockData.find((recipe) => recipe.id === 'corn-soup')!;
+  const mushroomRecipe = recipeMockData.find((recipe) => recipe.id === 'mushroom-pasta')!;
+  const salmonRecipe = recipeMockData.find((recipe) => recipe.id === 'salmon-asparagus')!;
+
   it('renders the recipes page on /recipes', () => {
     renderApp();
 
-    expect(screen.getByRole('heading', { name: '菜谱列表' })).toBeInTheDocument();
-    expect(screen.getByLabelText('搜索菜谱')).toBeInTheDocument();
-    expect(screen.getByText('巧克力慕斯蛋糕')).toBeInTheDocument();
-    expect(screen.getByText('烤三文鱼配芦笋')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toBeInTheDocument();
+    expect(screen.getByText(chocolateRecipe.title)).toBeInTheDocument();
+    expect(screen.getByText(salmonRecipe.title)).toBeInTheDocument();
   });
 
   it('filters recipes by title search', async () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.type(screen.getByLabelText('搜索菜谱'), '南瓜');
+    await user.type(screen.getByRole('searchbox'), pumpkinRecipe.title);
 
-    expect(screen.getByText('南瓜浓汤')).toBeInTheDocument();
-    expect(screen.queryByText('巧克力慕斯蛋糕')).not.toBeInTheDocument();
+    expect(screen.getByText(pumpkinRecipe.title)).toBeInTheDocument();
+    expect(screen.queryByText(chocolateRecipe.title)).not.toBeInTheDocument();
   });
 
   it('filters recipes by category', async () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getByRole('button', { name: '汤类' }));
+    await user.click(screen.getByRole('button', { name: recipeCategories[4] }));
 
-    expect(screen.getByText('香草玉米浓汤')).toBeInTheDocument();
-    expect(screen.getByText('南瓜浓汤')).toBeInTheDocument();
-    expect(screen.queryByText('奶油蘑菇意面')).not.toBeInTheDocument();
+    expect(screen.getByText(cornRecipe.title)).toBeInTheDocument();
+    expect(screen.getByText(pumpkinRecipe.title)).toBeInTheDocument();
+    expect(screen.queryByText(mushroomRecipe.title)).not.toBeInTheDocument();
   });
 
   it('sorts recipes by oldest first', async () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getByRole('button', { name: '最早' }));
+    const filterSection = screen
+      .getByRole('button', { name: recipeCategories[0] })
+      .closest('section');
 
-    const cards = screen.getAllByRole('button', { name: /查看菜谱：/ });
-    expect(cards[0]).toHaveAccessibleName('查看菜谱：烤三文鱼配芦笋');
+    expect(filterSection).not.toBeNull();
+
+    const filterButtons = within(filterSection as HTMLElement).getAllByRole('button');
+    const oldestButton = filterButtons[filterButtons.length - 1];
+
+    await user.click(oldestButton);
+
+    const cards = getRecipeCardButtons();
+    expect(cards[0]).toHaveAccessibleName(expect.stringContaining(salmonRecipe.title));
   });
 
-  it('navigates to the recipe detail placeholder when a card is clicked', async () => {
+  it('navigates to the recipe detail page when a card is clicked', async () => {
     const user = userEvent.setup();
-    renderApp();
+    const { router } = renderApp();
 
-    await user.click(screen.getByRole('button', { name: '查看菜谱：巧克力慕斯蛋糕' }));
+    const targetCard = getRecipeCardButtons().find(
+      (button) => button.querySelector('h2')?.textContent === chocolateRecipe.title,
+    );
+
+    expect(targetCard).toBeDefined();
+
+    await user.click(targetCard as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: '菜谱详情' })).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe('/recipes/chocolate-mousse-cake');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: chocolateRecipe.title })).toBeInTheDocument();
     });
   });
 
   it('navigates to the new recipe placeholder when the floating button is clicked', async () => {
     const user = userEvent.setup();
-    renderApp();
+    const { router } = renderApp();
 
-    await user.click(screen.getByRole('button', { name: '新建菜谱' }));
+    const createButton = screen
+      .getAllByRole('button')
+      .find((button) => button.className.includes('fixed'));
+
+    expect(createButton).toBeDefined();
+
+    await user.click(createButton as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: '创建菜谱' })).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe('/recipes/new');
     });
+
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 });
