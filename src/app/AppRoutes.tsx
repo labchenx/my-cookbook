@@ -1,15 +1,13 @@
 import { Route, Routes } from 'react-router-dom';
 import { AuthPage } from '../pages/auth/AuthPage';
+import { RecipesPage } from '../pages/recipes/RecipesPage';
 import { PlaceholderPage } from '../pages/shared/PlaceholderPage';
 
 export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<AuthPage />} />
-      <Route
-        path="/recipes"
-        element={<PlaceholderPage title="菜谱列表" description="这里将展示你的全部菜谱。" />}
-      />
+      <Route path="/recipes" element={<RecipesPage />} />
       <Route
         path="/recipes/new"
         element={<PlaceholderPage title="创建菜谱" description="这里将支持链接解析和手动编辑。" />}

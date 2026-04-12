@@ -6,7 +6,7 @@ type AuthTabsProps = {
 };
 
 const tabBaseClass =
-  'flex h-[44px] flex-1 items-center justify-center rounded-xl text-[16px] font-medium leading-6 transition-colors';
+  'cursor-accent-pointer flex h-[44px] flex-1 items-center justify-center rounded-xl text-[16px] font-medium leading-6 transition-[color,background-color,box-shadow] duration-200';
 
 export function AuthTabs({ mode, onChange }: AuthTabsProps) {
   return (
