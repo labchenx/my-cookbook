@@ -1,19 +1,23 @@
-import type { Editor } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
+import TextAlign from '@tiptap/extension-text-align';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import TextAlign from '@tiptap/extension-text-align';
 import { useEffect } from 'react';
 import { recipeIconButtonInteractive } from './buttonStyles';
 import { RecipeSectionCard } from './RecipeSectionCard';
-import { normalizeRichTextHtml } from './richTextUtils';
+import {
+  deriveRichTextValue,
+  normalizeRichTextJson,
+  type RichTextDerivedValue,
+} from './richTextUtils';
 
 type RichTextEditorVariant = 'ingredients' | 'steps';
 
 type RichTextEditorProps = {
   label: string;
   helperText?: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: JSONContent;
+  onChange: (value: RichTextDerivedValue) => void;
   variant: RichTextEditorVariant;
 };
 
@@ -102,8 +106,20 @@ function BulletListIcon() {
 function OrderedListIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
-      <path d="M2.5 3.333H4.167V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2.5 10.333C2.5 9.781 2.948 9.333 3.5 9.333H4.167V12H2.5L4.167 9.333" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2.5 3.333H4.167V6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2.5 10.333C2.5 9.781 2.948 9.333 3.5 9.333H4.167V12H2.5L4.167 9.333"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path d="M6.667 4H13.333" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
       <path d="M6.667 8H13.333" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
       <path d="M6.667 12H13.333" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -137,21 +153,21 @@ const toolbarGroups: ToolbarGroup[] = [
   [
     {
       command: 'bold',
-      label: '加粗',
+      label: '\u52a0\u7c97',
       icon: BoldIcon,
       isActive: (editor) => !!editor?.isActive('bold'),
       run: (editor) => editor?.chain().focus().toggleBold().run(),
     },
     {
       command: 'italic',
-      label: '斜体',
+      label: '\u659c\u4f53',
       icon: ItalicIcon,
       isActive: (editor) => !!editor?.isActive('italic'),
       run: (editor) => editor?.chain().focus().toggleItalic().run(),
     },
     {
       command: 'underline',
-      label: '下划线',
+      label: '\u4e0b\u5212\u7ebf',
       icon: UnderlineIcon,
       isActive: (editor) => !!editor?.isActive('underline'),
       run: (editor) => editor?.chain().focus().toggleUnderline().run(),
@@ -160,14 +176,14 @@ const toolbarGroups: ToolbarGroup[] = [
   [
     {
       command: 'bulletList',
-      label: '无序列表',
+      label: '\u65e0\u5e8f\u5217\u8868',
       icon: BulletListIcon,
       isActive: (editor) => !!editor?.isActive('bulletList'),
       run: (editor) => editor?.chain().focus().toggleBulletList().run(),
     },
     {
       command: 'orderedList',
-      label: '有序列表',
+      label: '\u6709\u5e8f\u5217\u8868',
       icon: OrderedListIcon,
       isActive: (editor) => !!editor?.isActive('orderedList'),
       run: (editor) => editor?.chain().focus().toggleOrderedList().run(),
@@ -176,20 +192,24 @@ const toolbarGroups: ToolbarGroup[] = [
   [
     {
       command: 'alignLeft',
-      label: '左对齐',
+      label: '\u5de6\u5bf9\u9f50',
       icon: AlignLeftIcon,
       isActive: (editor) => !!editor?.isActive({ textAlign: 'left' }),
       run: (editor) => editor?.chain().focus().setTextAlign('left').run(),
     },
     {
       command: 'alignCenter',
-      label: '居中对齐',
+      label: '\u5c45\u4e2d\u5bf9\u9f50',
       icon: AlignCenterIcon,
       isActive: (editor) => !!editor?.isActive({ textAlign: 'center' }),
       run: (editor) => editor?.chain().focus().setTextAlign('center').run(),
     },
   ],
 ];
+
+function serializeDocument(value: JSONContent) {
+  return JSON.stringify(normalizeRichTextJson(value));
+}
 
 export function RichTextEditor({
   label,
@@ -212,7 +232,7 @@ export function RichTextEditor({
         types: ['paragraph'],
       }),
     ],
-    content: normalizeRichTextHtml(value) || '',
+    content: normalizeRichTextJson(value),
     editorProps: {
       attributes: {
         class: [
@@ -231,8 +251,7 @@ export function RichTextEditor({
       },
     },
     onUpdate({ editor: nextEditor }) {
-      const normalized = normalizeRichTextHtml(nextEditor.getHTML());
-      onChange(normalized);
+      onChange(deriveRichTextValue(nextEditor.getJSON() as JSONContent));
     },
   });
 
@@ -241,11 +260,11 @@ export function RichTextEditor({
       return;
     }
 
-    const normalizedValue = normalizeRichTextHtml(value);
-    const currentValue = normalizeRichTextHtml(editor.getHTML());
+    const nextValue = normalizeRichTextJson(value);
+    const currentValue = normalizeRichTextJson(editor.getJSON() as JSONContent);
 
-    if (normalizedValue !== currentValue) {
-      editor.commands.setContent(normalizedValue || '', {
+    if (serializeDocument(nextValue) !== serializeDocument(currentValue)) {
+      editor.commands.setContent(nextValue, {
         emitUpdate: false,
       });
     }

@@ -15,7 +15,7 @@ export function Navbar({ searchValue, onSearchChange }: NavbarProps) {
             <img src={chefHatIcon} alt="" className="h-5 w-5 sm:h-6 sm:w-6" />
           </div>
           <p className="hidden text-[20px] font-semibold leading-7 text-[#2D2520] sm:block">
-            我的菜谱库
+            {'\u6211\u7684\u83dc\u8c31\u5e93'}
           </p>
         </div>
 
@@ -28,8 +28,8 @@ export function Navbar({ searchValue, onSearchChange }: NavbarProps) {
           <input
             type="search"
             value={searchValue}
-            aria-label="搜索菜谱"
-            placeholder="搜索菜谱..."
+            aria-label={'\u641c\u7d22\u83dc\u8c31'}
+            placeholder={'\u641c\u7d22\u83dc\u8c31...'}
             onChange={(event) => onSearchChange(event.target.value)}
             className="h-[37px] w-full rounded-xl border border-[rgba(45,37,32,0.1)] bg-[#FAF7F5] pl-10 pr-3 text-[14px] text-[#2D2520] outline-none transition placeholder:text-[rgba(45,37,32,0.5)] focus:border-[#EA5D38] sm:h-[45px] sm:rounded-2xl sm:pl-12 sm:pr-4 sm:text-[16px]"
           />

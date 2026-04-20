@@ -4,9 +4,12 @@ import { recipeUploadInteractive } from './buttonStyles';
 
 type UploadPlaceholderProps = {
   id: string;
-  onSelect: (fileName: string) => void;
+  onSelect: (file: File) => void | Promise<void>;
   variant: 'cover' | 'step';
   fileName?: string;
+  previewUrl?: string | null;
+  alt?: string;
+  isUploading?: boolean;
 };
 
 const variantConfig = {
@@ -22,28 +25,58 @@ const variantConfig = {
   },
 } as const;
 
-export function UploadPlaceholder({ id, onSelect, variant, fileName }: UploadPlaceholderProps) {
+export function UploadPlaceholder({
+  id,
+  onSelect,
+  variant,
+  fileName,
+  previewUrl = null,
+  alt = '',
+  isUploading = false,
+}: UploadPlaceholderProps) {
   const config = variantConfig[variant];
+  const hasPreview = typeof previewUrl === 'string' && previewUrl.trim().length > 0;
+  const statusLabel = isUploading ? '上传中...' : fileName ? '已上传图片' : hasPreview ? '已选择图片' : '上传图片';
 
   return (
     <label
       htmlFor={id}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-1 border border-dashed border-[rgba(45,37,32,0.1)] bg-white text-center ${config.wrapper} ${recipeUploadInteractive}`}
+      className={`relative flex cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden border border-dashed border-[rgba(45,37,32,0.1)] bg-white text-center ${config.wrapper} ${recipeUploadInteractive} ${
+        isUploading ? 'pointer-events-none opacity-70' : ''
+      }`}
     >
-      <img src={config.icon} alt="" className={config.iconSize} />
-      <span className="text-[12px] leading-4 text-[#827971]">
-        {fileName ? '已选择图片' : '上传图片'}
-      </span>
+      {hasPreview ? (
+        <>
+          <img
+            src={previewUrl}
+            alt={alt}
+            className="absolute inset-0 h-full w-full object-cover"
+            data-testid={`${id}-preview`}
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(45,37,32,0)_0%,rgba(45,37,32,0.75)_100%)] px-2 py-2 text-white">
+            <span className="block text-[12px] leading-4">{statusLabel}</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <img src={config.icon} alt="" className={config.iconSize} />
+          <span className="text-[12px] leading-4 text-[#827971]">{statusLabel}</span>
+        </>
+      )}
       <input
         id={id}
         type="file"
         accept="image/*"
         className="sr-only"
+        disabled={isUploading}
         onChange={(event) => {
           const file = event.target.files?.[0];
+
           if (file) {
-            onSelect(file.name);
+            void onSelect(file);
           }
+
+          event.currentTarget.value = '';
         }}
       />
     </label>

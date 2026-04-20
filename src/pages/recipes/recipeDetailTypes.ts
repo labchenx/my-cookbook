@@ -1,15 +1,24 @@
+import type { JSONContent } from '@tiptap/core';
+
 export type RecipeDetail = {
   id: string;
   title: string;
-  description: string;
-  cover: string;
+  description: string | null;
+  coverImage: string | null;
+  category: string | null;
   tags: string[];
   createdAt: string;
-  prepTime: string;
-  cookTime: string;
-  servings: string;
-  ingredientsRichText: string;
-  stepsRichText: string;
+  updatedAt: string;
+  ingredientsJson: JSONContent | null;
+  ingredientsHtml: string | null;
+  ingredientsText: string | null;
+  stepsJson: JSONContent | null;
+  stepsHtml: string | null;
+  stepsText: string | null;
+  sourceUrl: string | null;
+  sourceType: 'manual' | 'ai_parse' | null;
+  parseStatus: 'none' | 'pending' | 'success' | 'failed';
+  status: 'draft' | 'published';
 };
 
 export type RecipeDetailStatus = 'loading' | 'error' | 'empty' | 'success';

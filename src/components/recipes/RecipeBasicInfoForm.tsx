@@ -10,11 +10,13 @@ import { UploadPlaceholder } from './UploadPlaceholder';
 type RecipeBasicInfoFormProps = {
   title: string;
   coverImageName: string;
+  coverPreviewUrl?: string | null;
   category: string;
   tagInput: string;
   tags: string[];
+  isCoverUploading?: boolean;
   onTitleChange: (value: string) => void;
-  onCoverSelect: (fileName: string) => void;
+  onCoverSelect: (file: File) => void | Promise<void>;
   onCategoryChange: (value: string) => void;
   onTagInputChange: (value: string) => void;
   onAddTag: () => void;
@@ -24,9 +26,11 @@ type RecipeBasicInfoFormProps = {
 export function RecipeBasicInfoForm({
   title,
   coverImageName,
+  coverPreviewUrl = null,
   category,
   tagInput,
   tags,
+  isCoverUploading = false,
   onTitleChange,
   onCoverSelect,
   onCategoryChange,
@@ -63,6 +67,9 @@ export function RecipeBasicInfoForm({
             id="recipe-cover-upload"
             variant="cover"
             fileName={coverImageName}
+            previewUrl={coverPreviewUrl}
+            alt={title.trim() ? `${title.trim()} 封面预览` : '菜谱封面预览'}
+            isUploading={isCoverUploading}
             onSelect={onCoverSelect}
           />
         </div>

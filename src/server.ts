@@ -1,7 +1,6 @@
-import express from 'express';
-import './db/init';
+import { createServerApp } from './serverApp';
 
-const app = express();
+const app = createServerApp();
 const port = 3001;
 
 app.listen(port, () => {

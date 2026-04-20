@@ -1,0 +1,40 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="kitchenPattern" width="260" height="200" patternUnits="userSpaceOnUse">
+      <g stroke="#CBBFB4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+        <path d="M32 58C48 42 76 42 92 58V90H32V58Z"/>
+        <path d="M46 42V26"/>
+        <path d="M62 42V22"/>
+        <path d="M78 42V26"/>
+        <ellipse cx="176" cy="58" rx="30" ry="22"/>
+        <path d="M176 82V114"/>
+        <path d="M156 56C162 60 170 62 176 62C182 62 190 60 196 56"/>
+        <path d="M108 138C132 122 162 122 186 138"/>
+        <path d="M120 138V164"/>
+        <path d="M174 138V164"/>
+        <path d="M118 164H176"/>
+        <path d="M46 126L76 150"/>
+        <path d="M76 150L66 162"/>
+        <path d="M90 114L114 132"/>
+        <path d="M22 142L42 158"/>
+        <path d="M210 134L236 102"/>
+        <path d="M236 102L248 110"/>
+        <path d="M226 148L248 120"/>
+        <ellipse cx="62" cy="182" rx="18" ry="8"/>
+        <ellipse cx="210" cy="26" rx="18" ry="8"/>
+      </g>
+    </pattern>
+    <linearGradient id="surface" x1="188" y1="76" x2="1416" y2="824" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4EEE7"/>
+      <stop offset="1" stop-color="#E7DDD2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 450) rotate(90) scale(460 720)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#E8E8E8"/>
+  <rect x="154" y="78" width="1292" height="744" rx="38" fill="url(#surface)"/>
+  <rect x="154" y="78" width="1292" height="744" rx="38" fill="url(#kitchenPattern)"/>
+  <rect x="154" y="78" width="1292" height="744" rx="38" fill="url(#glow)"/>
+</svg>
