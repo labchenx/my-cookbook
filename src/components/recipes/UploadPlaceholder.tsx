@@ -36,7 +36,13 @@ export function UploadPlaceholder({
 }: UploadPlaceholderProps) {
   const config = variantConfig[variant];
   const hasPreview = typeof previewUrl === 'string' && previewUrl.trim().length > 0;
-  const statusLabel = isUploading ? '上传中...' : fileName ? '已上传图片' : hasPreview ? '已选择图片' : '上传图片';
+  const statusLabel = isUploading
+    ? '上传中...'
+    : fileName
+      ? '已上传图片'
+      : hasPreview
+        ? '已选择图片'
+        : '上传图片';
 
   return (
     <label

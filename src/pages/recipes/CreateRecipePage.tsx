@@ -11,6 +11,16 @@ import {
   type RichTextDerivedValue,
 } from '../../components/recipes/richTextUtils';
 import type {
+  CreateParsingSessionResponse,
+  ParsingDoneEvent,
+  ParsingErrorEvent,
+  ParsingParseErrorEvent,
+  ParsingProgressEvent,
+  ParsingResultEvent,
+  ParsingStage,
+  ParsingStageEvent,
+} from '../../features/parsing/types';
+import type {
   CreateRecipeMode,
   CreateRecipePayload,
   CreateRecipeResponse,
@@ -23,13 +33,43 @@ type UploadRecipeImageResponse = {
   url: string;
 };
 
-const parseSuccessMessage =
-  '链接解析成功，后续可在这里填充自动识别结果。';
-const parseErrorMessage =
-  '链接解析失败，请检查链接格式后重试。';
+type ParseSessionState = {
+  sessionId: string | null;
+  stage: ParsingStage | null;
+  progress: number | null;
+  stageLabel: string;
+  detailMessage: string;
+  resultText: string;
+};
+
+const parseRequestErrorMessage = '链接解析失败，请稍后重试。';
+const createParseSessionErrorMessage = '解析任务创建失败，请稍后重试。';
+const parseStreamDisconnectedMessage = '解析连接已中断，请重新发起解析。';
+const parsePreparingMessage = '正在准备解析任务...';
+const parseSuccessMessage = '解析成功，结果已输出到控制台。';
+const parseErrorMessage = '链接解析失败，请检查链接格式后重试。';
 const titleRequiredMessage = '请输入菜谱标题。';
 const createRecipeErrorMessage = '创建菜谱失败，请稍后重试。';
 const uploadImageErrorMessage = '图片上传失败，请稍后重试。';
+const parsingStageLabels: Record<ParsingStage, string> = {
+  parse_link: '解析链接',
+  fetch_media: '获取视频',
+  extract_audio: '提取音频',
+  transcribe: '识别文案',
+  structure: '结构化处理中',
+  write_markdown: '生成 Markdown',
+  completed: '解析完成',
+  failed: '解析失败',
+};
+const parsingStageProgressDefaults: Record<Exclude<ParsingStage, 'failed'>, number> = {
+  parse_link: 8,
+  fetch_media: 34,
+  extract_audio: 56,
+  transcribe: 82,
+  structure: 92,
+  write_markdown: 97,
+  completed: 100,
+};
 
 function createInitialDraft(): RecipeDraft {
   return {
@@ -45,6 +85,17 @@ function createInitialDraft(): RecipeDraft {
     stepsJson: createEmptyRichTextDocument(),
     stepsHtml: '',
     stepsText: '',
+  };
+}
+
+function createInitialParseSessionState(): ParseSessionState {
+  return {
+    sessionId: null,
+    stage: null,
+    progress: null,
+    stageLabel: '',
+    detailMessage: '',
+    resultText: '',
   };
 }
 
@@ -70,6 +121,36 @@ function buildCreateRecipePayload(
     stepsText: draft.stepsText || null,
     status,
   };
+}
+
+function resolveParsingStageLabel(stage: ParsingStage | null): string {
+  return stage ? parsingStageLabels[stage] : '';
+}
+
+function resolveParsingProgress(stage: ParsingStage | null, progress?: number): number | null {
+  if (typeof progress === 'number') {
+    return Math.max(0, Math.min(100, Math.round(progress)));
+  }
+
+  if (!stage || stage === 'failed') {
+    return null;
+  }
+
+  return parsingStageProgressDefaults[stage];
+}
+
+function parseEventPayload<T>(event: Event): T | null {
+  const data = (event as MessageEvent<string>).data;
+
+  if (typeof data !== 'string') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(data) as T;
+  } catch {
+    return null;
+  }
 }
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -176,26 +257,107 @@ async function createRecipe(
   return responseBody as CreateRecipeResponse;
 }
 
+async function createDouyinParseSession(
+  url: string,
+  signal?: AbortSignal,
+): Promise<CreateParsingSessionResponse> {
+  const response = await fetch('/api/parsing/douyin/sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ url }),
+    signal,
+  });
+
+  const responseBody = (await response.json().catch(() => null)) as { message?: string } | null;
+
+  if (!response.ok) {
+    throw new Error(
+      typeof responseBody?.message === 'string' && responseBody.message.trim().length > 0
+        ? responseBody.message
+        : createParseSessionErrorMessage,
+    );
+  }
+
+  if (
+    !responseBody ||
+    typeof responseBody !== 'object' ||
+    typeof (responseBody as { sessionId?: unknown }).sessionId !== 'string'
+  ) {
+    throw new Error(createParseSessionErrorMessage);
+  }
+
+  return responseBody as CreateParsingSessionResponse;
+}
+
 export function CreateRecipePage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<CreateRecipeMode>('manual');
-  const [parseUrl, setParseUrl] = useState('https://example.com/recipe/123');
+  const [parseUrl, setParseUrl] = useState('');
   const [parseStatus, setParseStatus] = useState<ParseStatus>('idle');
   const [parseMessage, setParseMessage] = useState('');
+  const [parseSession, setParseSession] = useState<ParseSessionState>(createInitialParseSessionState);
   const [draft, setDraft] = useState<RecipeDraft>(createInitialDraft);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const activeCoverPreviewUrlRef = useRef<string | null>(null);
+  const parseEventSourceRef = useRef<EventSource | null>(null);
+  const parseSessionCompletedRef = useRef(false);
+  const lastParseErrorMessageRef = useRef('');
 
   useEffect(() => {
     return () => {
       if (activeCoverPreviewUrlRef.current) {
         URL.revokeObjectURL(activeCoverPreviewUrlRef.current);
       }
+
+      parseEventSourceRef.current?.close();
     };
   }, []);
+
+  const closeParseStream = () => {
+    parseEventSourceRef.current?.close();
+    parseEventSourceRef.current = null;
+  };
+
+  const resetParseState = () => {
+    closeParseStream();
+    parseSessionCompletedRef.current = false;
+    lastParseErrorMessageRef.current = '';
+    setParseStatus('idle');
+    setParseMessage('');
+    setParseSession(createInitialParseSessionState());
+  };
+
+  const setParseStage = (stage: ParsingStage, detailMessage: string, progress?: number) => {
+    setParseSession((current) => ({
+      ...current,
+      stage,
+      stageLabel: resolveParsingStageLabel(stage),
+      detailMessage,
+      progress: resolveParsingProgress(stage, progress),
+    }));
+  };
+
+  const handleParseFailure = (message: string) => {
+    const nextMessage = message || parseErrorMessage;
+
+    lastParseErrorMessageRef.current = nextMessage;
+    parseSessionCompletedRef.current = true;
+    closeParseStream();
+    setParseStatus('error');
+    setParseMessage(nextMessage);
+    setParseSession((current) => ({
+      ...current,
+      stage: 'failed',
+      stageLabel: resolveParsingStageLabel('failed'),
+      detailMessage: nextMessage,
+      progress: null,
+    }));
+  };
 
   const clearSubmitError = () => {
     if (submitError) {
@@ -284,23 +446,125 @@ export function CreateRecipePage() {
   };
 
   const handleParse = async () => {
-    if (!parseUrl.trim()) {
+    const url = parseUrl.trim();
+
+    if (!url) {
       return;
     }
 
+    closeParseStream();
+    parseSessionCompletedRef.current = false;
+    lastParseErrorMessageRef.current = '';
     setParseStatus('loading');
     setParseMessage('');
+    setParseSession({
+      sessionId: null,
+      stage: 'parse_link',
+      stageLabel: resolveParsingStageLabel('parse_link'),
+      detailMessage: parsePreparingMessage,
+      progress: resolveParsingProgress('parse_link', 4),
+      resultText: '',
+    });
 
-    await new Promise((resolve) => window.setTimeout(resolve, 800));
+    try {
+      const { sessionId } = await createDouyinParseSession(url);
+      const eventSource = new EventSource(
+        `/api/parsing/douyin/sessions/${encodeURIComponent(sessionId)}/events`,
+      );
+      parseEventSourceRef.current = eventSource;
 
-    if (parseUrl.includes('http')) {
-      setParseStatus('success');
-      setParseMessage(parseSuccessMessage);
-      return;
+      setParseSession((current) => ({
+        ...current,
+        sessionId,
+      }));
+
+      eventSource.addEventListener('stage', (event) => {
+        const payload = parseEventPayload<ParsingStageEvent>(event);
+
+        if (!payload) {
+          return;
+        }
+
+        setParseStage(payload.stage, payload.message, payload.progress);
+
+        if (payload.stage === 'failed') {
+          setParseStatus('error');
+          setParseMessage(payload.message);
+          lastParseErrorMessageRef.current = payload.message;
+        }
+      });
+
+      eventSource.addEventListener('progress', (event) => {
+        const payload = parseEventPayload<ParsingProgressEvent>(event);
+
+        if (!payload) {
+          return;
+        }
+
+        setParseStatus('loading');
+        setParseStage(payload.stage, payload.message, payload.progress);
+      });
+
+      eventSource.addEventListener('result', (event) => {
+        const payload = parseEventPayload<ParsingResultEvent>(event);
+
+        if (!payload) {
+          return;
+        }
+
+        console.log('[douyin-parse]', payload.text);
+        setParseSession((current) => ({
+          ...current,
+          resultText: payload.text,
+        }));
+      });
+
+      eventSource.addEventListener('parse_error', (event) => {
+        const payload = parseEventPayload<ParsingParseErrorEvent>(event);
+
+        if (payload) {
+          handleParseFailure(payload.message);
+        }
+      });
+
+      eventSource.addEventListener('error', (event) => {
+        const payload = parseEventPayload<ParsingErrorEvent>(event);
+
+        if (payload) {
+          handleParseFailure(payload.message);
+        }
+      });
+
+      eventSource.addEventListener('done', (event) => {
+        const payload = parseEventPayload<ParsingDoneEvent>(event);
+
+        if (!payload) {
+          return;
+        }
+
+        parseSessionCompletedRef.current = true;
+        closeParseStream();
+
+        if (payload.status === 'completed') {
+          setParseStage('completed', parseSuccessMessage, 100);
+          setParseStatus('success');
+          setParseMessage(parseSuccessMessage);
+          return;
+        }
+
+        handleParseFailure(lastParseErrorMessageRef.current || parseErrorMessage);
+      });
+
+      eventSource.onerror = () => {
+        if (parseSessionCompletedRef.current) {
+          return;
+        }
+
+        handleParseFailure(parseStreamDisconnectedMessage);
+      };
+    } catch (error) {
+      handleParseFailure(error instanceof Error ? error.message : parseRequestErrorMessage);
     }
-
-    setParseStatus('error');
-    setParseMessage(parseErrorMessage);
   };
 
   const handleCancel = () => navigate('/recipes');
@@ -343,11 +607,14 @@ export function CreateRecipePage() {
               url={parseUrl}
               status={parseStatus}
               message={parseMessage}
+              progress={parseSession.progress}
+              stageLabel={parseSession.stageLabel}
+              detailMessage={parseSession.detailMessage}
+              isStreaming={parseStatus === 'loading'}
               onUrlChange={(value) => {
                 setParseUrl(value);
-                if (parseStatus !== 'idle') {
-                  setParseStatus('idle');
-                  setParseMessage('');
+                if (parseStatus !== 'idle' || parseSession.sessionId) {
+                  resetParseState();
                 }
               }}
               onSubmit={handleParse}
@@ -370,15 +637,15 @@ export function CreateRecipePage() {
                 onRemoveTag={handleRemoveTag}
               />
               <RichTextEditor
-                label={'配料列表'}
-                helperText={'使用列表格式输入配料，例如：鸡蛋 - 2个'}
+                label="配料列表"
+                helperText="使用列表格式输入配料，例如：鸡蛋 - 2个"
                 value={draft.ingredientsJson}
                 variant="ingredients"
                 onChange={(value) => updateRichTextDraft('ingredients', value)}
               />
               <RichTextEditor
-                label={'制作步骤'}
-                helperText={'使用有序列表详细描述每一步的操作过程'}
+                label="制作步骤"
+                helperText="使用有序列表详细描述每一步的操作过程"
                 value={draft.stepsJson}
                 variant="steps"
                 onChange={(value) => updateRichTextDraft('steps', value)}
