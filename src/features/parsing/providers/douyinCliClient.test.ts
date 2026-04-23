@@ -1,4 +1,4 @@
-import { EventEmitter } from 'node:events';
+﻿import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -86,7 +86,8 @@ describe('parseDouyinTextWithCli', () => {
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ stage: 'parse_link' }));
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ stage: 'fetch_media' }));
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ stage: 'transcribe' }));
-    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ stage: 'completed' }));
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ stage: 'write_markdown' }));
+    expect(onEvent).not.toHaveBeenCalledWith(expect.objectContaining({ stage: 'completed' }));
   });
 
   it('throws a stable tool error when the CLI exits unsuccessfully', async () => {
@@ -110,13 +111,13 @@ describe('parseDouyinTextWithCli', () => {
     );
 
     await Promise.resolve();
-    (child.stderr as PassThrough).write('API 调用失败\n');
+    (child.stderr as PassThrough).write('API 璋冪敤澶辫触\n');
     child.emit('close', 1);
 
     await expect(parsePromise).rejects.toMatchObject({
       name: 'DouyinCliClientError',
       code: 'tool',
-      message: 'API 调用失败',
+      message: 'API 璋冪敤澶辫触',
     });
   });
 
@@ -191,10 +192,11 @@ describe('inferCliParsingStage', () => {
     });
     expect(inferCliParsingStage('下载进度: 50.0%')).toMatchObject({
       stage: 'fetch_media',
-      progress: 29.5,
+      progress: 30,
     });
     expect(inferCliParsingStage('正在识别第 3/5 段...')).toMatchObject({
       stage: 'transcribe',
+      progress: 68.8,
     });
     expect(inferCliParsingStage('文案已保存到: output/123/transcript.md')).toMatchObject({
       stage: 'write_markdown',
@@ -208,3 +210,4 @@ describe('extractTranscriptText', () => {
     expect(extractTranscriptText('# 标题\n\n## 文案内容\n\n文本内容')).toBe('文本内容');
   });
 });
+

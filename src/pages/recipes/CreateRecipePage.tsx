@@ -7,7 +7,9 @@ import { ParseRecipeSection } from '../../components/recipes/ParseRecipeSection'
 import { RecipeBasicInfoForm } from '../../components/recipes/RecipeBasicInfoForm';
 import { RichTextEditor } from '../../components/recipes/RichTextEditor';
 import {
+  createListRichTextDocument,
   createEmptyRichTextDocument,
+  deriveRichTextValue,
   type RichTextDerivedValue,
 } from '../../components/recipes/richTextUtils';
 import type {
@@ -20,6 +22,7 @@ import type {
   ParsingStage,
   ParsingStageEvent,
 } from '../../features/parsing/types';
+import type { StructuredRecipeDraft } from '../../features/recipeStructuring/types';
 import type {
   CreateRecipeMode,
   CreateRecipePayload,
@@ -40,6 +43,7 @@ type ParseSessionState = {
   stageLabel: string;
   detailMessage: string;
   resultText: string;
+  recipeDraft: StructuredRecipeDraft | null;
 };
 
 const parseRequestErrorMessage = '链接解析失败，请稍后重试。';
@@ -62,12 +66,12 @@ const parsingStageLabels: Record<ParsingStage, string> = {
   failed: '解析失败',
 };
 const parsingStageProgressDefaults: Record<Exclude<ParsingStage, 'failed'>, number> = {
-  parse_link: 8,
-  fetch_media: 34,
-  extract_audio: 56,
-  transcribe: 82,
-  structure: 92,
-  write_markdown: 97,
+  parse_link: 6,
+  fetch_media: 18,
+  extract_audio: 54,
+  transcribe: 62,
+  write_markdown: 78,
+  structure: 80,
   completed: 100,
 };
 
@@ -96,6 +100,27 @@ function createInitialParseSessionState(): ParseSessionState {
     stageLabel: '',
     detailMessage: '',
     resultText: '',
+    recipeDraft: null,
+  };
+}
+
+function createDraftFromStructuredRecipe(recipeDraft: StructuredRecipeDraft): RecipeDraft {
+  const ingredients = deriveRichTextValue(createListRichTextDocument(recipeDraft.ingredients, false));
+  const steps = deriveRichTextValue(createListRichTextDocument(recipeDraft.steps, true));
+
+  return {
+    title: recipeDraft.title,
+    coverImageName: recipeDraft.coverImageName ?? '',
+    coverImage: recipeDraft.coverImage,
+    category: recipeDraft.category,
+    tagInput: '',
+    tags: recipeDraft.tags,
+    ingredientsJson: ingredients.json,
+    ingredientsHtml: ingredients.html,
+    ingredientsText: ingredients.text,
+    stepsJson: steps.json,
+    stepsHtml: steps.html,
+    stepsText: steps.text,
   };
 }
 
@@ -464,6 +489,7 @@ export function CreateRecipePage() {
       detailMessage: parsePreparingMessage,
       progress: resolveParsingProgress('parse_link', 4),
       resultText: '',
+      recipeDraft: null,
     });
 
     try {
@@ -516,6 +542,7 @@ export function CreateRecipePage() {
         setParseSession((current) => ({
           ...current,
           resultText: payload.text,
+          recipeDraft: payload.recipeDraft ?? current.recipeDraft,
         }));
       });
 
@@ -567,6 +594,23 @@ export function CreateRecipePage() {
     }
   };
 
+  const handleConfirmParseResult = () => {
+    if (!parseSession.recipeDraft) {
+      return;
+    }
+
+    clearSubmitError();
+
+    if (activeCoverPreviewUrlRef.current) {
+      URL.revokeObjectURL(activeCoverPreviewUrlRef.current);
+      activeCoverPreviewUrlRef.current = null;
+    }
+
+    setDraft(createDraftFromStructuredRecipe(parseSession.recipeDraft));
+    setCoverPreviewUrl(parseSession.recipeDraft.coverImage);
+    setMode('manual');
+  };
+
   const handleCancel = () => navigate('/recipes');
 
   const handlePublish = async () => {
@@ -594,9 +638,16 @@ export function CreateRecipePage() {
   };
 
   const isBusy = isSubmitting || isCoverUploading;
+  const isParseResultModalOpen =
+    mode === 'parse' && parseStatus === 'success' && Boolean(parseSession.recipeDraft);
 
   return (
-    <main className="min-h-screen bg-[#FEFDFB]">
+    <>
+    <main
+      className="min-h-screen bg-[#FEFDFB]"
+      inert={isParseResultModalOpen ? true : undefined}
+      aria-hidden={isParseResultModalOpen ? true : undefined}
+    >
       <CreateRecipeHeader onBack={handleCancel} />
       <div className="mx-auto w-full max-w-[848px] px-4 pb-8 pt-[72px] lg:pb-0 lg:pt-[101px]">
         <CreateRecipeTabs mode={mode} onChange={setMode} />
@@ -665,5 +716,37 @@ export function CreateRecipePage() {
         </div>
       </div>
     </main>
+      {isParseResultModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(34,28,24,0.46)] px-4 py-6 backdrop-blur-sm">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="parse-result-dialog-title"
+            className="w-full max-w-[420px] rounded-[18px] bg-[#FFFDFC] px-6 py-6 text-center shadow-[0_28px_80px_rgba(45,37,32,0.22)]"
+          >
+            <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-[rgba(45,37,32,0.42)]">
+              Parse Complete
+            </p>
+            <h2
+              id="parse-result-dialog-title"
+              className="mt-3 text-[20px] font-semibold leading-7 text-[#2D2520]"
+            >
+              菜谱已结构化完成
+            </h2>
+            <p className="mt-3 text-[14px] leading-6 text-[#6F6259]">
+              已生成标题、配料、步骤、分类、标签和封面信息。
+            </p>
+            <button
+              type="button"
+              onClick={handleConfirmParseResult}
+              autoFocus
+              className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-[#EA5D38] text-[15px] font-medium leading-5 text-white shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:bg-[#D94E2D] hover:shadow-[0_12px_26px_rgba(234,93,56,0.22)] focus:outline-none focus:ring-2 focus:ring-[#EA5D38]/30 active:translate-y-0"
+            >
+              进入手动编辑
+            </button>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }

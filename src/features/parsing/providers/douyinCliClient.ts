@@ -156,7 +156,7 @@ function extractDownloadProgress(message: string): number | null {
     return null;
   }
 
-  return 12 + Number(match[1]) * 0.35;
+  return 10 + Number(match[1]) * 0.4;
 }
 
 export function inferCliParsingStage(message: string): StageMapping | null {
@@ -181,7 +181,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
   if (segmentMatch) {
     const current = Number(segmentMatch[1]);
     const total = Number(segmentMatch[2]);
-    const segmentProgress = total > 0 ? 62 + (current / total) * 28 : 82;
+    const segmentProgress = total > 0 ? 58 + (current / total) * 18 : 68;
 
     return {
       stage: 'transcribe',
@@ -194,7 +194,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
     return {
       stage: 'parse_link',
       message: stageMessages.parse_link,
-      progress: 8,
+      progress: 6,
     };
   }
 
@@ -202,7 +202,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
     return {
       stage: 'fetch_media',
       message: stageMessages.fetch_media,
-      progress: 34,
+      progress: 18,
     };
   }
 
@@ -210,7 +210,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
     return {
       stage: 'extract_audio',
       message: stageMessages.extract_audio,
-      progress: 56,
+      progress: 54,
     };
   }
 
@@ -218,7 +218,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
     return {
       stage: 'transcribe',
       message: stageMessages.transcribe,
-      progress: 82,
+      progress: 62,
     };
   }
 
@@ -226,7 +226,7 @@ export function inferCliParsingStage(message: string): StageMapping | null {
     return {
       stage: 'write_markdown',
       message: stageMessages.write_markdown,
-      progress: 97,
+      progress: 78,
     };
   }
 
@@ -332,7 +332,7 @@ export async function parseDouyinTextWithCli(
 
   await runtime.mkdir(runOutputDir, { recursive: true });
 
-  emitStage(options.onEvent, 'parse_link', stageMessages.parse_link, 8);
+  emitStage(options.onEvent, 'parse_link', stageMessages.parse_link, 6);
 
   const child = runtime.spawn(uvCommand, args, {
     cwd: options.projectRoot,
@@ -402,8 +402,8 @@ export async function parseDouyinTextWithCli(
     });
   });
 
-  emitProgress(options.onEvent, currentStage, currentMessage, 92);
-  emitStage(options.onEvent, 'write_markdown', stageMessages.write_markdown, 97);
+  emitProgress(options.onEvent, currentStage, currentMessage, 76);
+  emitStage(options.onEvent, 'write_markdown', stageMessages.write_markdown, 78);
 
   const transcriptPath = await runtime.findLatestTranscript(runOutputDir);
 
@@ -417,8 +417,6 @@ export async function parseDouyinTextWithCli(
   if (!text) {
     throw new DouyinCliClientError('Douyin CLI generated an empty transcript.', 'invalid-result');
   }
-
-  emitStage(options.onEvent, 'completed', stageMessages.completed, 100);
 
   return text;
 }

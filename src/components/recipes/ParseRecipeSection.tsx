@@ -45,7 +45,7 @@ export function ParseRecipeSection({
           粘贴视频链接
         </h2>
         <p className="mt-2 text-center text-[14px] leading-5 text-[#827971]">
-          使用脚本解析流程，实时展示阶段进度；本轮只输出原始文案，后续可继续接入结构化和 Markdown 生成。
+          解析完成后会自动结构化菜谱，并引导进入手动编辑。
         </p>
       </div>
 

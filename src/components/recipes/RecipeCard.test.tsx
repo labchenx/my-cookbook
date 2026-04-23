@@ -71,4 +71,23 @@ describe('RecipeCard', () => {
       fallbackCover,
     );
   });
+
+  it('limits visible tags and shows a remaining count', () => {
+    render(
+      <RecipeCard
+        recipe={{
+          ...recipe,
+          tags: ['快手菜', '下饭菜', '五花肉', '鸡蛋', '青椒', '焦香风味'],
+        }}
+        relativeTime="2 hours ago"
+        onClick={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('快手菜')).toBeInTheDocument();
+    expect(screen.getByText('下饭菜')).toBeInTheDocument();
+    expect(screen.getByText('五花肉')).toBeInTheDocument();
+    expect(screen.getByText('+3')).toBeInTheDocument();
+    expect(screen.queryByText('鸡蛋')).not.toBeInTheDocument();
+  });
 });

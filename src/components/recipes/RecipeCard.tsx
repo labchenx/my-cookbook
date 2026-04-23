@@ -41,6 +41,8 @@ export function RecipeCard({ recipe, relativeTime, onClick, priority = false }: 
   const primarySource = normalizeCoverImage(recipe.coverImage ?? recipe.cover);
   const [currentSource, setCurrentSource] = useState(() => resolveDisplaySource(primarySource));
   const [imageReady, setImageReady] = useState(() => isCachedAsLoaded(resolveDisplaySource(primarySource)));
+  const visibleTags = recipe.tags.slice(0, 3);
+  const hiddenTagCount = Math.max(recipe.tags.length - visibleTags.length, 0);
 
   useEffect(() => {
     const nextSource = resolveDisplaySource(primarySource);
@@ -107,17 +109,26 @@ export function RecipeCard({ recipe, relativeTime, onClick, priority = false }: 
           {recipe.description}
         </p>
 
-        <div className="mt-3 flex items-center justify-between gap-3 sm:mt-3">
-          <div className="flex items-center gap-2">
-            {recipe.tags.map((tag) => (
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:mt-3">
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+            {visibleTags.map((tag) => (
               <span
                 key={`${recipe.id}-${tag}`}
-                className="inline-flex h-5 items-center gap-[4px] rounded-[10px] bg-[#FEF4ED] px-2 text-[12px] leading-4 text-[#2D2520] sm:h-6 sm:gap-[6px] sm:rounded-xl sm:px-[10px]"
+                title={tag}
+                className="inline-flex h-5 min-w-0 max-w-[92px] shrink items-center gap-[4px] rounded-[10px] bg-[#FEF4ED] px-2 text-[12px] leading-4 text-[#2D2520] sm:h-6 sm:max-w-[112px] sm:gap-[6px] sm:rounded-xl sm:px-[10px]"
               >
-                <img src={tagIcon} alt="" className="h-3 w-3" />
-                {tag}
+                <img src={tagIcon} alt="" className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{tag}</span>
               </span>
             ))}
+            {hiddenTagCount > 0 ? (
+              <span
+                title={recipe.tags.slice(visibleTags.length).join('、')}
+                className="inline-flex h-5 shrink-0 items-center rounded-[10px] bg-[#F7F1ED] px-2 text-[12px] leading-4 text-[#6F6259] sm:h-6 sm:rounded-xl sm:px-[10px]"
+              >
+                +{hiddenTagCount}
+              </span>
+            ) : null}
           </div>
 
           <span className="inline-flex shrink-0 items-center gap-1 text-[12px] leading-4 text-[#827971]">

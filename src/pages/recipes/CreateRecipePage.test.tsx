@@ -281,6 +281,39 @@ function emitSuccessfulParseFlow() {
   });
 }
 
+function emitSuccessfulStructuredParseFlow() {
+  const stream = MockEventSource.last();
+
+  stream.emit('progress', {
+    type: 'progress',
+    stage: 'structure',
+    message: '正在调用百炼结构化菜谱',
+    progress: 86,
+    createdAt: '2026-04-21T10:00:02.000Z',
+  });
+  stream.emit('result', {
+    type: 'result',
+    text: '辣椒炒肉原始文案',
+    recipeDraft: {
+      title: '辣椒炒肉',
+      ingredients: ['前腿肉 300g', '螺丝椒 4个'],
+      steps: ['切好肉和辣椒', '煸炒肥肉', '加入瘦肉和调味料'],
+      category: '家常菜',
+      tags: ['下饭菜', '快手菜'],
+      imagePrompt: '辣椒炒肉真实封面',
+      coverImageName: 'pepper-pork.png',
+      coverImage: '/assets/recipes/pepper-pork.png',
+      rawText: '辣椒炒肉原始文案',
+    },
+    createdAt: '2026-04-21T10:00:03.000Z',
+  });
+  stream.emit('done', {
+    type: 'done',
+    status: 'completed',
+    createdAt: '2026-04-21T10:00:04.000Z',
+  });
+}
+
 describe('CreateRecipePage', () => {
   beforeEach(() => {
     fetchMock.mockImplementation(createDefaultFetchImplementation());
@@ -380,6 +413,43 @@ describe('CreateRecipePage', () => {
     await waitFor(() => {
       expect(consoleLogMock).toHaveBeenCalledWith('[douyin-parse]', '鎶栭煶瑙嗛瑙ｆ瀽鍚庣殑鍘熷鏂囨');
     });
+  });
+
+  it('confirms the structured parse result and prefills the manual editor', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    const parseSection = await openParseSection(user);
+    await user.click(parseSection.getByRole('button', { name: '解析' }));
+    emitSuccessfulStructuredParseFlow();
+
+    await user.click(await screen.findByRole('button', { name: '进入手动编辑' }));
+
+    expect(await screen.findByDisplayValue('辣椒炒肉')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('家常菜')).toBeInTheDocument();
+    expect(screen.getByText('下饭菜')).toBeInTheDocument();
+    expect(screen.getByText('前腿肉 300g')).toBeInTheDocument();
+    expect(screen.getByText('加入瘦肉和调味料')).toBeInTheDocument();
+    expect(screen.getByTestId('recipe-cover-upload-preview')).toHaveAttribute(
+      'src',
+      '/assets/recipes/pepper-pork.png',
+    );
+
+    await user.click(screen.getByRole('button', { name: '发布' }));
+
+    const payload = getJsonRequestBody('/api/recipes');
+
+    expect(payload).toEqual(
+      expect.objectContaining({
+        title: '辣椒炒肉',
+        coverImageName: 'pepper-pork.png',
+        coverImage: '/assets/recipes/pepper-pork.png',
+        category: '家常菜',
+        tags: ['下饭菜', '快手菜'],
+        ingredientsText: expect.stringContaining('前腿肉 300g'),
+        stepsText: expect.stringContaining('加入瘦肉和调味料'),
+      }),
+    );
   });
 
   it('shows the API error message when session creation fails', async () => {

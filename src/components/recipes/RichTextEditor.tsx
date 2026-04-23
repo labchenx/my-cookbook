@@ -41,11 +41,11 @@ type ToolbarGroup = Array<{
 const editorSize = {
   ingredients: {
     frameHeight: 'h-[230px]',
-    contentMinHeight: 'min-h-[180px]',
+    contentMinHeight: 'min-h-full',
   },
   steps: {
     frameHeight: 'h-[290px]',
-    contentMinHeight: 'min-h-[240px]',
+    contentMinHeight: 'min-h-full',
   },
 } as const;
 
@@ -278,9 +278,9 @@ export function RichTextEditor({
       </div>
 
       <div
-        className={`mt-4 overflow-hidden rounded-2xl border border-[rgba(45,37,32,0.1)] bg-white ${editorSize[variant].frameHeight}`}
+        className={`mt-4 flex flex-col overflow-hidden rounded-2xl border border-[rgba(45,37,32,0.1)] bg-white ${editorSize[variant].frameHeight}`}
       >
-        <div className="flex h-12 items-center bg-[rgba(254,244,237,0.5)] px-2">
+        <div className="flex h-12 shrink-0 items-center bg-[rgba(254,244,237,0.5)] px-2">
           {toolbarGroups.map((group, groupIndex) => (
             <div key={`group-${groupIndex}`} className="flex items-center">
               {group.map((item) => {
@@ -312,7 +312,7 @@ export function RichTextEditor({
           ))}
         </div>
 
-        <div className="border-t border-[rgba(45,37,32,0.1)]">
+        <div className="min-h-0 flex-1 overflow-y-auto border-t border-[rgba(45,37,32,0.1)]">
           <EditorContent editor={editor} />
         </div>
       </div>

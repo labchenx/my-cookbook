@@ -1,3 +1,5 @@
+import type { StructuredRecipeDraft } from '../recipeStructuring/types';
+
 export type ParseDouyinRequestBody = {
   url: string;
 };
@@ -39,6 +41,7 @@ export type ParsingProgressEvent = {
 export type ParsingResultEvent = {
   type: 'result';
   text: string;
+  recipeDraft?: StructuredRecipeDraft;
   createdAt: string;
 };
 
