@@ -282,11 +282,11 @@ async function createRecipe(
   return responseBody as CreateRecipeResponse;
 }
 
-async function createDouyinParseSession(
+async function createParsingSession(
   url: string,
   signal?: AbortSignal,
 ): Promise<CreateParsingSessionResponse> {
-  const response = await fetch('/api/parsing/douyin/sessions', {
+  const response = await fetch('/api/parsing/sessions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -493,9 +493,9 @@ export function CreateRecipePage() {
     });
 
     try {
-      const { sessionId } = await createDouyinParseSession(url);
+      const { sessionId } = await createParsingSession(url);
       const eventSource = new EventSource(
-        `/api/parsing/douyin/sessions/${encodeURIComponent(sessionId)}/events`,
+        `/api/parsing/sessions/${encodeURIComponent(sessionId)}/events`,
       );
       parseEventSourceRef.current = eventSource;
 
@@ -538,7 +538,7 @@ export function CreateRecipePage() {
           return;
         }
 
-        console.log('[douyin-parse]', payload.text);
+        console.log('[link-parse]', payload.sourceType ?? 'unknown', payload.text);
         setParseSession((current) => ({
           ...current,
           resultText: payload.text,

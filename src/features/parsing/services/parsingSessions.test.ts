@@ -222,7 +222,7 @@ describe('createParsingSessionsService', () => {
     });
 
     await expect(service.createSession('   ')).rejects.toMatchObject({
-      message: 'Douyin url is required.',
+      message: 'Parsing url is required.',
       statusCode: 400,
     });
   });
@@ -248,6 +248,87 @@ describe('createParsingSessionsService', () => {
         expect.objectContaining({
           type: 'error',
           message: 'Bailian recipe result is missing title.',
+        }),
+        expect.objectContaining({ type: 'done', status: 'failed' }),
+      ]),
+    );
+  });
+
+  it('routes Xiaohongshu links to the dedicated XHS recipe parser', async () => {
+    const parseText = vi.fn();
+    const structureRecipe = vi.fn();
+    const parseXhsRecipe = vi.fn(async (_url: string, options) => {
+      options?.onEvent?.({
+        type: 'stage',
+        stage: 'fetch_media',
+        message: '正在读取小红书图文/视频信息...',
+        progress: 40,
+        createdAt: '2026-04-28T10:00:01.000Z',
+      });
+
+      return {
+        text: 'Title: 红烧肉\nBody: 小红书正文',
+        recipeDraft: createStructuredRecipe('Title: 红烧肉\nBody: 小红书正文'),
+      };
+    });
+    const service = createParsingSessionsService({
+      parseText,
+      parseXhsRecipe,
+      structureRecipe,
+      env: createValidEnv(),
+      createSessionId: () => 'xhs-session',
+      random: () => 0.5,
+      retentionMs: 1000,
+    });
+
+    const session = await service.createSession(
+      'https://www.xiaohongshu.com/explore/abc123?xsec_token=token-123',
+    );
+
+    await waitForExpectation(() => {
+      expect(service.getSession(session.sessionId)?.status).toBe('completed');
+    });
+
+    expect(parseXhsRecipe).toHaveBeenCalledWith(
+      'https://www.xiaohongshu.com/explore/abc123?xsec_token=token-123',
+      expect.objectContaining({ onEvent: expect.any(Function) }),
+    );
+    expect(parseText).not.toHaveBeenCalled();
+    expect(structureRecipe).not.toHaveBeenCalled();
+    expect(service.getSession(session.sessionId)?.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'stage', stage: 'fetch_media' }),
+        expect.objectContaining({
+          type: 'result',
+          sourceType: 'xiaohongshu',
+          text: 'Title: 红烧肉\nBody: 小红书正文',
+          recipeDraft: expect.objectContaining({ title: 'Parsed Recipe' }),
+        }),
+        expect.objectContaining({ type: 'done', status: 'completed' }),
+      ]),
+    );
+  });
+
+  it('fails Xiaohongshu sessions when the dedicated parser fails', async () => {
+    const service = createParsingSessionsService({
+      parseXhsRecipe: vi.fn().mockRejectedValue(new ParsingError('Bailian video url is inaccessible', 502)),
+      env: createValidEnv(),
+      createSessionId: () => 'xhs-failed-session',
+      random: () => 0.5,
+      retentionMs: 1000,
+    });
+
+    const session = await service.createSession('https://xhslink.com/a/abc');
+
+    await waitForExpectation(() => {
+      expect(service.getSession(session.sessionId)?.status).toBe('failed');
+    });
+
+    expect(service.getSession(session.sessionId)?.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'parse_error',
+          message: 'Bailian video url is inaccessible',
         }),
         expect.objectContaining({ type: 'done', status: 'failed' }),
       ]),

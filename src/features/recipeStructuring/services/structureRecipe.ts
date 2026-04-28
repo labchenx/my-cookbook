@@ -36,6 +36,11 @@ type StructureRecipeDependencies = {
   createId?: () => string;
 };
 
+type GenerateRecipeCoverImageDependencies = Pick<
+  StructureRecipeDependencies,
+  'env' | 'fetch' | 'mkdir' | 'writeFile' | 'outputDirectory' | 'now' | 'createId'
+>;
+
 type BailianStructuredRecipe = {
   title?: unknown;
   ingredients?: unknown;
@@ -509,6 +514,27 @@ async function generateCoverImage(
     coverImageName: fileName,
     coverImage: `/assets/recipes/${fileName}`,
   };
+}
+
+export async function generateRecipeCoverImage(
+  structuredRecipe: Omit<StructuredRecipeDraft, 'coverImageName' | 'coverImage' | 'rawText'>,
+  dependencies: GenerateRecipeCoverImageDependencies = {},
+) {
+  const runtime = {
+    env: dependencies.env ?? process.env,
+    fetch: dependencies.fetch ?? (globalThis.fetch as unknown as FetchLike),
+    mkdir: dependencies.mkdir ?? mkdir,
+    writeFile: dependencies.writeFile ?? writeFile,
+    outputDirectory: dependencies.outputDirectory ?? defaultOutputDirectory,
+    now: dependencies.now ?? (() => Date.now()),
+    createId: dependencies.createId ?? (() => randomUUID().slice(0, 8)),
+  };
+
+  if (!runtime.fetch) {
+    throw new RecipeStructuringError('Fetch API is not available for Bailian image requests.');
+  }
+
+  return generateCoverImage(structuredRecipe, runtime);
 }
 
 export function createStructureRecipe(

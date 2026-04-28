@@ -24,8 +24,8 @@ export function createCreateParseSessionHandler(
         return;
       }
 
-      console.error('Failed to create Douyin parsing session', error);
-      response.status(500).json({ message: 'Failed to create Douyin parsing session.' });
+      console.error('Failed to create parsing session', error);
+      response.status(500).json({ message: 'Failed to create parsing session.' });
     }
   };
 }

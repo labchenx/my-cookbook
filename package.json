@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev": "concurrently -n client,server,xhs-downloader -c blue,green,magenta \"npm run dev:client\" \"npm run dev:server\" \"npm run dev:xhs-downloader\"",
     "dev:client": "vite",
     "dev:server": "tsx src/server.ts",
+    "dev:xhs-downloader": "tsx src/scripts/devXhsDownloader.ts",
     "seed:recipes": "tsx src/scripts/seedRecipes.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",

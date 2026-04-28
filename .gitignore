@@ -6,3 +6,4 @@ dist/
 data.db
 .env
 .douyin-output/
+.xhs-downloader-dev-status.json

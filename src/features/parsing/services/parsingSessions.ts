@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { config as loadDotenv } from 'dotenv';
 import {
+  type ParseXhsRecipe,
   type ParseDouyinText,
+  type ParsingSourcePlatform,
   type ParsingSessionEvent,
   type ParsingStage,
   type ParsingStageEvent,
@@ -11,6 +13,8 @@ import {
   createParseDouyinText,
   resolveDouyinParsingRequest,
 } from './parseDouyinText';
+import { detectParsingPlatform } from './detectParsingPlatform';
+import { createParseXhsRecipe } from './parseXhsRecipe';
 import {
   structureRecipe as defaultStructureRecipe,
   type StructureRecipe,
@@ -28,6 +32,7 @@ type ProgressProfile = {
 type ParsingSessionRecord = {
   id: string;
   url: string;
+  sourceType: ParsingSourcePlatform;
   createdAt: string;
   updatedAt: string;
   status: ParsingSessionStatus;
@@ -40,6 +45,7 @@ type ParsingSessionRecord = {
 
 type ParsingSessionsServiceDependencies = {
   parseText?: ParseDouyinText;
+  parseXhsRecipe?: ParseXhsRecipe;
   structureRecipe?: StructureRecipe;
   env?: NodeJS.ProcessEnv;
   cwd?: string;
@@ -140,6 +146,7 @@ export function createParsingSessionsService(
       env: dependencies.env,
       cwd: dependencies.cwd,
     });
+  const parseXhsRecipe = dependencies.parseXhsRecipe ?? createParseXhsRecipe();
   const structureRecipe = dependencies.structureRecipe ?? defaultStructureRecipe;
   const env = dependencies.env ?? process.env;
   const cwd = dependencies.cwd ?? process.cwd();
@@ -206,13 +213,36 @@ export function createParsingSessionsService(
 
   async function runSession(session: ParsingSessionRecord) {
     try {
+      if (session.sourceType === 'xiaohongshu') {
+        const result = await parseXhsRecipe(session.url, {
+          onEvent: (event) => {
+            publishEvent(session, cloneEvent(event));
+          },
+        });
+
+        ensureFinalStage(session, 'completed', '小红书解析完成，菜谱草稿已生成。');
+        publishEvent(session, {
+          type: 'result',
+          text: result.text,
+          recipeDraft: result.recipeDraft,
+          sourceType: session.sourceType,
+          createdAt: new Date().toISOString(),
+        });
+        publishEvent(session, {
+          type: 'done',
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+
       const text = await parseText(session.url, {
         onEvent: (event) => {
           publishEvent(session, cloneEvent(event));
         },
       });
       const recipeDraft = await structureRecipe(text, {
-        sourceType: 'douyin',
+        sourceType: session.sourceType,
         sourceUrl: session.url,
         onEvent: (event) => {
           publishEvent(session, cloneEvent(event));
@@ -224,6 +254,7 @@ export function createParsingSessionsService(
         type: 'result',
         text,
         recipeDraft,
+        sourceType: session.sourceType,
         createdAt: new Date().toISOString(),
       });
       publishEvent(session, {
@@ -265,11 +296,17 @@ export function createParsingSessionsService(
 
   return {
     async createSession(url: string) {
-      const { normalizedUrl } = resolveDouyinParsingRequest(url, { env, cwd });
+      const { platform, normalizedUrl } = detectParsingPlatform(url);
+
+      if (platform === 'douyin') {
+        resolveDouyinParsingRequest(normalizedUrl, { env, cwd });
+      }
+
       const createdAt = new Date().toISOString();
       const session: ParsingSessionRecord = {
         id: createSessionId(),
         url: normalizedUrl,
+        sourceType: platform,
         createdAt,
         updatedAt: createdAt,
         status: 'working',

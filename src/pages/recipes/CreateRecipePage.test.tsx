@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+﻿import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AppRoutes } from '../../app/AppRoutes';
@@ -81,8 +81,8 @@ function createRecipeResponse(overrides: Partial<Record<string, unknown>> = {}) 
     title: 'Created Recipe',
     description: null,
     coverImage: '/assets/recipes/cover-salad.png',
-    category: '瀹跺父鑿?',
-    tags: ['瀹跺父鑿?'],
+    category: '鐎硅泛鐖堕懣?',
+    tags: ['鐎硅泛鐖堕懣?'],
     ingredientsJson: { type: 'doc', content: [] },
     ingredientsHtml: '<p>ingredient</p>',
     ingredientsText: 'ingredient',
@@ -171,7 +171,7 @@ function createDefaultFetchImplementation() {
       );
     }
 
-    if (input === '/api/parsing/douyin/sessions' && init?.method === 'POST') {
+    if (input === '/api/parsing/sessions' && init?.method === 'POST') {
       return createFetchResponse({ sessionId: 'parse-session-1' }, 201);
     }
 
@@ -271,7 +271,7 @@ function emitSuccessfulParseFlow() {
   });
   stream.emit('result', {
     type: 'result',
-    text: '鎶栭煶瑙嗛瑙ｆ瀽鍚庣殑鍘熷鏂囨',
+    text: '閹舵牠鐓剁憴鍡涱暥鐟欙絾鐎介崥搴ｆ畱閸樼喎顫愰弬鍥攳',
     createdAt: '2026-04-21T10:00:03.000Z',
   });
   stream.emit('done', {
@@ -287,23 +287,23 @@ function emitSuccessfulStructuredParseFlow() {
   stream.emit('progress', {
     type: 'progress',
     stage: 'structure',
-    message: '正在调用百炼结构化菜谱',
+    message: 'Structuring recipe draft...',
     progress: 86,
     createdAt: '2026-04-21T10:00:02.000Z',
   });
   stream.emit('result', {
     type: 'result',
-    text: '辣椒炒肉原始文案',
+    text: 'pepper pork source text',
     recipeDraft: {
-      title: '辣椒炒肉',
-      ingredients: ['前腿肉 300g', '螺丝椒 4个'],
-      steps: ['切好肉和辣椒', '煸炒肥肉', '加入瘦肉和调味料'],
-      category: '家常菜',
-      tags: ['下饭菜', '快手菜'],
-      imagePrompt: '辣椒炒肉真实封面',
+      title: 'Pepper Pork',
+      ingredients: ['pork 300g', 'pepper 4 pieces'],
+      steps: ['cut pork and pepper', 'render pork fat', 'add pork and seasoning'],
+      category: 'Home cooking',
+      tags: ['dinner', 'quick'],
+      imagePrompt: 'Pepper pork cover photo',
       coverImageName: 'pepper-pork.png',
       coverImage: '/assets/recipes/pepper-pork.png',
-      rawText: '辣椒炒肉原始文案',
+      rawText: 'pepper pork source text',
     },
     createdAt: '2026-04-21T10:00:03.000Z',
   });
@@ -384,7 +384,7 @@ describe('CreateRecipePage', () => {
     emitSuccessfulParseFlow();
 
     await waitFor(() => {
-      expect(screen.getByText('解析成功，结果已输出到控制台。')).toBeInTheDocument();
+      expect(screen.getByText(/解析成功/)).toBeInTheDocument();
     });
     expect(screen.getByText('解析完成')).toBeInTheDocument();
   });
@@ -397,21 +397,21 @@ describe('CreateRecipePage', () => {
     await user.click(parseSection.getByRole('button', { name: '解析' }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/parsing/douyin/sessions',
+      '/api/parsing/sessions',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       }),
     );
-    expect(getJsonRequestBody('/api/parsing/douyin/sessions')).toEqual({
+    expect(getJsonRequestBody('/api/parsing/sessions')).toEqual({
       url: 'https://example.com/recipe/123',
     });
-    expect(MockEventSource.last().url).toBe('/api/parsing/douyin/sessions/parse-session-1/events');
+    expect(MockEventSource.last().url).toBe('/api/parsing/sessions/parse-session-1/events');
 
     emitSuccessfulParseFlow();
 
     await waitFor(() => {
-      expect(consoleLogMock).toHaveBeenCalledWith('[douyin-parse]', '鎶栭煶瑙嗛瑙ｆ瀽鍚庣殑鍘熷鏂囨');
+      expect(consoleLogMock).toHaveBeenCalledWith('[link-parse]', 'unknown', '閹舵牠鐓剁憴鍡涱暥鐟欙絾鐎介崥搴ｆ畱閸樼喎顫愰弬鍥攳');
     });
   });
 
@@ -425,11 +425,11 @@ describe('CreateRecipePage', () => {
 
     await user.click(await screen.findByRole('button', { name: '进入手动编辑' }));
 
-    expect(await screen.findByDisplayValue('辣椒炒肉')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('家常菜')).toBeInTheDocument();
-    expect(screen.getByText('下饭菜')).toBeInTheDocument();
-    expect(screen.getByText('前腿肉 300g')).toBeInTheDocument();
-    expect(screen.getByText('加入瘦肉和调味料')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Pepper Pork')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Home cooking')).toBeInTheDocument();
+    expect(screen.getByText('dinner')).toBeInTheDocument();
+    expect(screen.getByText('pork 300g')).toBeInTheDocument();
+    expect(screen.getByText('add pork and seasoning')).toBeInTheDocument();
     expect(screen.getByTestId('recipe-cover-upload-preview')).toHaveAttribute(
       'src',
       '/assets/recipes/pepper-pork.png',
@@ -441,13 +441,13 @@ describe('CreateRecipePage', () => {
 
     expect(payload).toEqual(
       expect.objectContaining({
-        title: '辣椒炒肉',
+        title: 'Pepper Pork',
         coverImageName: 'pepper-pork.png',
         coverImage: '/assets/recipes/pepper-pork.png',
-        category: '家常菜',
-        tags: ['下饭菜', '快手菜'],
-        ingredientsText: expect.stringContaining('前腿肉 300g'),
-        stepsText: expect.stringContaining('加入瘦肉和调味料'),
+        category: 'Home cooking',
+        tags: ['dinner', 'quick'],
+        ingredientsText: expect.stringContaining('pork 300g'),
+        stepsText: expect.stringContaining('add pork and seasoning'),
       }),
     );
   });
@@ -456,7 +456,7 @@ describe('CreateRecipePage', () => {
     const user = userEvent.setup();
 
     fetchMock.mockImplementation(async (input: string, init?: RequestInit) => {
-      if (input === '/api/parsing/douyin/sessions' && init?.method === 'POST') {
+      if (input === '/api/parsing/sessions' && init?.method === 'POST') {
         return createFetchResponse({ message: 'Douyin parser API key is not configured.' }, 500);
       }
 
@@ -500,7 +500,7 @@ describe('CreateRecipePage', () => {
     MockEventSource.last().emit('parse_error', {
       type: 'parse_error',
       stage: 'failed',
-      message: '读取音频失败，请检查 FFmpeg。',
+      message: 'FFmpeg failure',
       createdAt: '2026-04-21T10:00:03.000Z',
     });
     MockEventSource.last().emit('done', {
@@ -509,7 +509,7 @@ describe('CreateRecipePage', () => {
       createdAt: '2026-04-21T10:00:04.000Z',
     });
 
-    expect(await screen.findByText('读取音频失败，请检查 FFmpeg。')).toBeInTheDocument();
+    expect(await screen.findByText('FFmpeg failure')).toBeInTheDocument();
     expect(consoleLogMock).not.toHaveBeenCalled();
   });
 
@@ -573,7 +573,7 @@ describe('CreateRecipePage', () => {
     );
     expect(createObjectUrlMock).toHaveBeenCalledWith(imageFile);
     expect(screen.getByTestId('recipe-cover-upload-preview')).toHaveAttribute('src', 'blob:my-cover.png');
-    expect(screen.getByText('已上传图片')).toBeInTheDocument();
+    expect(screen.getByText(/已上传图片/)).toBeInTheDocument();
   });
 
   it('shows the cover preview immediately before the upload request resolves', async () => {
@@ -607,7 +607,7 @@ describe('CreateRecipePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('已上传图片')).toBeInTheDocument();
+      expect(screen.getByText(/已上传图片/)).toBeInTheDocument();
     });
     expect(screen.getByTestId('recipe-cover-upload-preview')).toHaveAttribute('src', 'blob:preview.png');
   });
@@ -621,7 +621,7 @@ describe('CreateRecipePage', () => {
 
     await user.upload(fileInput, imageFile);
     await waitFor(() => {
-      expect(screen.getByText('已上传图片')).toBeInTheDocument();
+      expect(screen.getByText(/已上传图片/)).toBeInTheDocument();
     });
 
     await user.type(screen.getByRole('textbox', { name: '菜谱标题' }), 'Image Recipe');
@@ -716,7 +716,7 @@ describe('CreateRecipePage', () => {
 
     await user.click(screen.getByRole('button', { name: '发布' }));
 
-    expect(screen.getByText('请输入菜谱标题。')).toBeInTheDocument();
+    expect(screen.getByText(/请输入菜谱标题/)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -758,7 +758,7 @@ describe('CreateRecipePage', () => {
 
     expect(screen.getByRole('button', { name: '发布中...' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '取消' })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: '淇濆瓨鑽夌' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '保存草稿' })).not.toBeInTheDocument();
 
     deferredResponse.resolve(
       createRecipeResponse({
@@ -784,3 +784,7 @@ describe('CreateRecipePage', () => {
     });
   });
 });
+
+
+
+

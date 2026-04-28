@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { XhsDownloaderTestPage } from '../pages/dev/XhsDownloaderTestPage';
 import { CreateRecipePage } from '../pages/recipes/CreateRecipePage';
 import { RecipeDetailPage } from '../pages/recipes/RecipeDetailPage';
 import { RecipesPage } from '../pages/recipes/RecipesPage';
@@ -17,6 +18,7 @@ export function AppRoutes() {
       <Route path="/recipes/new" element={<CreateRecipePage />} />
       <Route path="/recipes/:id" element={<RecipeDetailPage />} />
       <Route path="/recipes/:id/edit" element={<RedirectLegacyRecipeEditRoute />} />
+      <Route path="/dev/xhs-downloader" element={<XhsDownloaderTestPage />} />
       <Route path="*" element={<Navigate to="/recipes" replace />} />
     </Routes>
   );
