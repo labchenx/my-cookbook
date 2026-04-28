@@ -58,7 +58,7 @@ describe('createStructureXhsRecipe', () => {
           ingredients: ['前腿肉 300g', '辣椒 5 根'],
           steps: ['切肉', '炒香辣椒', '下锅翻炒'],
           category: '家常菜',
-          tags: ['下饭菜', '家常菜', '快手菜'],
+          tags: ['家常菜', '牛肉', '烘焙', '减脂'],
         }),
       ),
     );
@@ -78,13 +78,13 @@ describe('createStructureXhsRecipe', () => {
           ingredients: ['前腿肉 300g', '辣椒 5 根'],
           steps: ['切肉', '炒香辣椒', '下锅翻炒'],
           category: '家常菜',
-          tags: ['下饭菜', '家常菜', '快手菜'],
+          tags: ['家常菜', '牛肉', '烘焙'],
           coverImage: null,
         },
         recipePayload: {
           title: '辣椒炒肉',
           category: '家常菜',
-          tags: ['下饭菜', '家常菜', '快手菜'],
+          tags: ['家常菜', '牛肉', '烘焙'],
           ingredientsText: '前腿肉 300g\n辣椒 5 根',
           stepsText: '1. 切肉\n2. 炒香辣椒\n3. 下锅翻炒',
           status: 'draft',
@@ -102,6 +102,7 @@ describe('createStructureXhsRecipe', () => {
       }),
     );
     expect(fetcher.mock.calls[0]?.[1]?.body).toContain('"type":"image_url"');
+    expect(fetcher.mock.calls[0]?.[1]?.body).toContain('家常菜、甜品、西式、烘焙、减脂、鸡肉、猪肉、牛肉');
   });
 
   it('falls back to the text model when there are no image urls', async () => {

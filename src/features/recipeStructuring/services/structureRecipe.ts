@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { config as loadDotenv } from 'dotenv';
+import {
+  fixedRecipeTags,
+  normalizeFixedRecipeTagsWithDefault,
+} from '../../../domain/recipeTags';
 import type { ParsingProgressEvent, ParsingStageEvent } from '../../parsing/types';
 import type { RecipeSourceType, StructuredRecipeDraft } from '../types';
 
@@ -170,8 +174,8 @@ function normalizeStructuredRecipe(
     throw new RecipeStructuringError('Bailian recipe result is missing title, ingredients, or steps.');
   }
 
-  const category = getString(value.category) || '家常菜';
-  const tags = Array.from(new Set(getStringArray(value.tags))).slice(0, 8);
+  const tags = normalizeFixedRecipeTagsWithDefault(value.tags);
+  const category = tags[0];
   const imagePrompt =
     getString(value.imagePrompt) ||
     `一张真实自然的菜谱封面摄影，主体是${title}，食材新鲜，光线柔和，构图干净。`;
@@ -328,7 +332,7 @@ async function requestStructuredRecipe(
             `来源平台：${options.sourceType || 'manual_text'}`,
             options.sourceUrl ? `来源链接：${options.sourceUrl}` : '',
             '请从下面视频/图文文案中提取菜谱。',
-            '要求：title 是菜名；ingredients 是配料数组；steps 是按顺序的制作步骤数组；category 是一个简短分类；tags 是 3-8 个标签；imagePrompt 是用于生成写实菜谱封面的中文提示词。',
+            `要求：title 是菜名；ingredients 是配料数组；steps 是按顺序的制作步骤数组；category 使用 tags 的第一个标签；tags 只能从这 8 个固定标签中选择 1 到 3 个：${fixedRecipeTags.join('、')}；imagePrompt 是用于生成写实菜谱封面的中文提示词。`,
             '配料提取原则：只抽取原文明确说出的配料和用量；原文没有用量就只写配料名；不要猜测、换算、补全或统一成“名称-用量”格式。',
             rawText,
           ]

@@ -88,7 +88,7 @@ describe('createStructureRecipe', () => {
       ingredients: ['前腿肉', '螺丝椒'],
       steps: ['切肉和辣椒', '煸炒肥肉', '加入瘦肉和调味料'],
       category: '家常菜',
-      tags: ['下饭菜', '快手菜'],
+      tags: ['家常菜'],
       imagePrompt: '辣椒炒肉真实菜谱封面',
       coverImageName: 'recipe-cover-1776672000000-abc12345.png',
       coverImage: '/assets/recipes/recipe-cover-1776672000000-abc12345.png',
@@ -101,10 +101,43 @@ describe('createStructureRecipe', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer dashscope-key' }),
       }),
     );
+    expect(fetchMock.mock.calls[0]?.[1]?.body).toContain('家常菜、甜品、西式、烘焙、减脂、鸡肉、猪肉、牛肉');
     expect(writeFileMock).toHaveBeenCalledWith(
       expect.stringContaining('recipe-cover-1776672000000-abc12345.png'),
       expect.any(Buffer),
     );
+  });
+
+  it('keeps only the first three fixed tags from the structured response', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse(
+          createTextModelBody(
+            JSON.stringify({
+              title: '巧克力鸡胸',
+              ingredients: ['鸡胸肉', '可可粉'],
+              steps: ['腌制', '烘烤'],
+              category: '奇怪分类',
+              tags: ['甜品', '烘焙', '减脂', '鸡肉', '快手菜'],
+              imagePrompt: '巧克力鸡胸封面',
+            }),
+          ),
+        ),
+      )
+      .mockResolvedValueOnce(createJsonResponse(createImageModelBody()))
+      .mockResolvedValueOnce(createImageResponse());
+    const structureRecipe = createStructureRecipe({
+      env: { DASHSCOPE_API_KEY: 'dashscope-key' } as NodeJS.ProcessEnv,
+      fetch: fetchMock,
+      mkdir: vi.fn().mockResolvedValue(undefined),
+      writeFile: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(structureRecipe('raw transcript')).resolves.toMatchObject({
+      category: '甜品',
+      tags: ['甜品', '烘焙', '减脂'],
+    });
   });
 
   it('parses JSON wrapped in a markdown code fence', async () => {

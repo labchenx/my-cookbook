@@ -4,6 +4,7 @@ import {
   createListRichTextDocument,
   deriveRichTextValue,
 } from '../components/recipes/richTextUtils';
+import { normalizeFixedRecipeTagsWithDefault } from '../domain/recipeTags';
 
 type RecipeStatus = 'published' | 'draft';
 type RecipeSourceType = 'manual' | 'ai_parse' | null;
@@ -57,6 +58,30 @@ const categoryDessert = '甜品';
 const categoryLight = '减脂';
 const categorySoup = '汤类';
 
+const seedTagOverrides: Record<string, string[]> = {
+  'tomato-beef-brisket-stew': ['家常菜', '牛肉'],
+  'cola-chicken-wings': ['家常菜', '鸡肉'],
+  'garlic-vermicelli-shrimp': ['家常菜'],
+  'oyster-sauce-lettuce': ['减脂'],
+  'black-pepper-beef-pasta': ['西式', '牛肉'],
+  'mushroom-chicken-rice': ['家常菜', '鸡肉'],
+  'tomato-shrimp-scrambled-eggs': ['家常菜'],
+  'dry-pan-cauliflower': ['家常菜', '猪肉'],
+  'pan-seared-salmon-asparagus': ['减脂'],
+  'quinoa-chicken-salad': ['减脂', '鸡肉'],
+  'avocado-egg-open-sandwich': ['西式', '减脂'],
+  'corn-chicken-soup': ['家常菜', '鸡肉'],
+  'yam-rib-soup': ['家常菜', '猪肉'],
+  'pumpkin-soy-milk-soup': ['减脂'],
+  'miso-tofu-seaweed-soup': ['家常菜'],
+  'basque-cheesecake': ['甜品', '烘焙'],
+  'matcha-soy-pudding': ['甜品'],
+  'sweet-fermented-rice-balls': ['甜品'],
+  'berry-yogurt-cup': ['甜品'],
+  'draft-yuzu-yogurt-mousse': ['甜品'],
+  'draft-weekend-focaccia': ['西式', '烘焙'],
+};
+
 function createRecipeTimestamp(dayOffset: number, hour: number, minute = 0) {
   const date = new Date(Date.UTC(2026, 3, 12, hour - 8, minute, 0));
   date.setUTCDate(date.getUTCDate() - dayOffset);
@@ -90,14 +115,15 @@ function buildRecipe({
     createListRichTextDocument(ingredientItems.map((item) => `${item.name} - ${item.amount}`)),
   );
   const stepContent = deriveRichTextValue(createListRichTextDocument(steps, true));
+  const normalizedTags = normalizeFixedRecipeTagsWithDefault(seedTagOverrides[id] ?? tags);
 
   return {
     id,
     title,
     description,
     coverImage,
-    category,
-    tags,
+    category: normalizedTags[0] ?? category,
+    tags: normalizedTags,
     ingredientsJson: JSON.stringify(ingredients.json),
     ingredientsHtml: ingredients.html,
     ingredientsText: ingredients.text,

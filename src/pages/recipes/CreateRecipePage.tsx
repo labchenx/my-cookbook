@@ -12,6 +12,11 @@ import {
   deriveRichTextValue,
   type RichTextDerivedValue,
 } from '../../components/recipes/richTextUtils';
+import {
+  defaultRecipeTag,
+  maxRecipeTagCount,
+  normalizeFixedRecipeTagsWithDefault,
+} from '../../domain/recipeTags';
 import type {
   CreateParsingSessionResponse,
   ParsingDoneEvent,
@@ -80,9 +85,8 @@ function createInitialDraft(): RecipeDraft {
     title: '',
     coverImageName: '',
     coverImage: null,
-    category: '',
-    tagInput: '',
-    tags: [],
+    category: defaultRecipeTag,
+    tags: [defaultRecipeTag],
     ingredientsJson: createEmptyRichTextDocument(),
     ingredientsHtml: '',
     ingredientsText: '',
@@ -107,14 +111,14 @@ function createInitialParseSessionState(): ParseSessionState {
 function createDraftFromStructuredRecipe(recipeDraft: StructuredRecipeDraft): RecipeDraft {
   const ingredients = deriveRichTextValue(createListRichTextDocument(recipeDraft.ingredients, false));
   const steps = deriveRichTextValue(createListRichTextDocument(recipeDraft.steps, true));
+  const tags = normalizeFixedRecipeTagsWithDefault(recipeDraft.tags);
 
   return {
     title: recipeDraft.title,
     coverImageName: recipeDraft.coverImageName ?? '',
     coverImage: recipeDraft.coverImage,
-    category: recipeDraft.category,
-    tagInput: '',
-    tags: recipeDraft.tags,
+    category: tags[0],
+    tags,
     ingredientsJson: ingredients.json,
     ingredientsHtml: ingredients.html,
     ingredientsText: ingredients.text,
@@ -129,15 +133,15 @@ function buildCreateRecipePayload(
   status: 'published',
 ): CreateRecipePayload {
   const trimmedCoverImageName = draft.coverImageName.trim();
-  const trimmedCategory = draft.category.trim();
+  const tags = normalizeFixedRecipeTagsWithDefault(draft.tags);
 
   return {
     title: draft.title.trim(),
     coverImageName: trimmedCoverImageName.length > 0 ? trimmedCoverImageName : undefined,
     coverImage: draft.coverImage ?? undefined,
     description: null,
-    category: trimmedCategory.length > 0 ? trimmedCategory : null,
-    tags: draft.tags,
+    category: tags[0],
+    tags,
     ingredientsJson: draft.ingredientsJson,
     ingredientsHtml: draft.ingredientsHtml || null,
     ingredientsText: draft.ingredientsText || null,
@@ -416,26 +420,17 @@ export function CreateRecipePage() {
     }));
   };
 
-  const handleAddTag = () => {
-    const tag = draft.tagInput.trim();
-
-    if (!tag || draft.tags.includes(tag)) {
-      return;
-    }
-
+  const handleTagToggle = (tag: string) => {
     clearSubmitError();
     setDraft((current) => ({
       ...current,
-      tags: [...current.tags, tag],
-      tagInput: '',
-    }));
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    clearSubmitError();
-    setDraft((current) => ({
-      ...current,
-      tags: current.tags.filter((item) => item !== tag),
+      tags: current.tags.includes(tag)
+        ? current.tags.length > 1
+          ? current.tags.filter((item) => item !== tag)
+          : current.tags
+        : current.tags.length < maxRecipeTagCount
+          ? [...current.tags, tag]
+          : current.tags,
     }));
   };
 
@@ -676,16 +671,11 @@ export function CreateRecipePage() {
                 title={draft.title}
                 coverImageName={draft.coverImageName}
                 coverPreviewUrl={coverPreviewUrl}
-                category={draft.category}
-                tagInput={draft.tagInput}
                 tags={draft.tags}
                 isCoverUploading={isCoverUploading}
                 onTitleChange={(value) => updateDraft('title', value)}
                 onCoverSelect={handleCoverSelect}
-                onCategoryChange={(value) => updateDraft('category', value)}
-                onTagInputChange={(value) => updateDraft('tagInput', value)}
-                onAddTag={handleAddTag}
-                onRemoveTag={handleRemoveTag}
+                onTagToggle={handleTagToggle}
               />
               <RichTextEditor
                 label="配料列表"

@@ -1,5 +1,11 @@
 import type { RequestHandler } from 'express';
 import { db } from '../db/sqlite';
+import {
+  defaultRecipeTag,
+  isFixedRecipeTag,
+  maxRecipeTagCount,
+  normalizeFixedRecipeTagsWithDefault,
+} from '../domain/recipeTags';
 
 export type RecipeListItem = {
   id: string;
@@ -259,14 +265,20 @@ function normalizeNullableStringField(value: unknown): string | null {
 
 function normalizeTags(value: unknown): string[] {
   if (value === undefined || value === null) {
-    return [];
+    return [defaultRecipeTag];
   }
 
   if (!Array.isArray(value) || value.some((tag) => typeof tag !== 'string')) {
     throw new InvalidRecipePayloadError();
   }
 
-  return value.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+  const trimmedTags = value.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+
+  if (trimmedTags.some((tag) => !isFixedRecipeTag(tag)) || trimmedTags.length > maxRecipeTagCount) {
+    throw new InvalidRecipePayloadError();
+  }
+
+  return normalizeFixedRecipeTagsWithDefault(trimmedTags);
 }
 
 function normalizeJsonObjectField(value: unknown): Record<string, any> | null {
@@ -399,8 +411,14 @@ export function listRecipes(
   }
 
   if (normalizedQuery.tag) {
-    whereClauses.push('tags LIKE ?');
-    params.push(`%${normalizedQuery.tag}%`);
+    whereClauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END)
+        WHERE json_each.value = ?
+      )
+    `);
+    params.push(normalizedQuery.tag);
   }
 
   const whereSql = `WHERE ${whereClauses.join(' AND ')}`;

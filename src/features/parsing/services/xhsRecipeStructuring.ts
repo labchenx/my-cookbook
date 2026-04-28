@@ -6,6 +6,10 @@ import type {
   XhsRecipeStructuringData,
   XhsRecipeStructuringResponse,
 } from '../types';
+import {
+  fixedRecipeTags,
+  normalizeFixedRecipeTagsWithDefault,
+} from '../../../domain/recipeTags';
 import type { StructuredRecipeDraft } from '../../recipeStructuring/types';
 
 loadDotenv();
@@ -412,8 +416,8 @@ function normalizeRecipeDecision(
   const title = getString(decision.title);
   const ingredients = getStringArray(decision.ingredients);
   const steps = getStringArray(decision.steps);
-  const category = getString(decision.category) || '家常菜';
-  const tags = Array.from(new Set(getStringArray(decision.tags))).slice(0, 8);
+  const tags = normalizeFixedRecipeTagsWithDefault(decision.tags);
+  const category = tags[0];
   const imagePrompt =
     getString(decision.imagePrompt) ||
     `一张真实自然的菜谱封面摄影，主体是${title}，食材新鲜，光线柔和，构图干净。`;
@@ -465,7 +469,7 @@ function buildPrompt(detail: XhsDownloaderDetailData) {
       '如果是菜谱，返回 isRecipe=true，并尽量只提取原文、图片或视频中明确出现的菜名、配料和步骤，不要脑补。',
       '只输出 JSON，不要输出解释。',
       '字段固定为：isRecipe, reason, title, ingredients, steps, category, tags, imagePrompt。',
-      '其中 ingredients 和 steps 必须是字符串数组；tags 返回 3 到 8 个中文标签；category 返回一个简短分类。',
+      `其中 ingredients 和 steps 必须是字符串数组；tags 只能从这 8 个固定标签中选择 1 到 3 个：${fixedRecipeTags.join('、')}；category 使用 tags 的第一个标签。`,
       'imagePrompt 返回一句中文封面生成提示词，用于生成写实自然的菜谱封面图。',
       '',
       sourceExcerpt,

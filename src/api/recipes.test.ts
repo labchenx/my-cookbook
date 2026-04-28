@@ -247,7 +247,7 @@ describe('listRecipes', () => {
     const result = listRecipes(
       {
         keyword: 'Matcha',
-        tag: 'dessert',
+        tag: '甜品',
         status: 'draft',
         sort: 'oldest',
         page: '2',
@@ -271,12 +271,12 @@ describe('listRecipes', () => {
       createdAt: '2026-04-13T08:30:00+08:00',
       status: 'draft',
     });
-    expect(database.countParams).toEqual(['draft', '%Matcha%', '%dessert%']);
-    expect(database.listParams).toEqual(['draft', '%Matcha%', '%dessert%', 5, 5]);
+    expect(database.countParams).toEqual(['draft', '%Matcha%', '甜品']);
+    expect(database.listParams).toEqual(['draft', '%Matcha%', '甜品', 5, 5]);
     expect(database.prepareCalls[0]).toContain('status = ?');
     expect(database.prepareCalls[0]).toContain('title LIKE ?');
     expect(database.prepareCalls[0]).not.toContain('content_text');
-    expect(database.prepareCalls[0]).toContain('tags LIKE ?');
+    expect(database.prepareCalls[0]).toContain('json_each');
     expect(database.prepareCalls[1]).toContain('ORDER BY created_at ASC');
   });
 
@@ -336,13 +336,13 @@ describe('listRecipes', () => {
         title: `Soup ${index + 1}`,
         description: 'Warm soup',
         cover_image: `/assets/recipes/soup-${index + 1}.png`,
-        tags: '["soup","nutrition"]',
+        tags: '["家常菜","鸡肉"]',
         created_at: `2026-03-${String(index + 10).padStart(2, '0')}T09:00:00+08:00`,
         status: 'published',
       })),
     });
 
-    const result = listRecipes({ tag: 'soup', page: '1', pageSize: '9' }, database);
+    const result = listRecipes({ tag: '鸡肉', page: '1', pageSize: '9' }, database);
 
     expect(result.pagination).toEqual({
       page: 1,
@@ -350,7 +350,7 @@ describe('listRecipes', () => {
       total: 11,
       totalPages: 2,
     });
-    expect(database.countParams).toEqual(['published', '%soup%']);
+    expect(database.countParams).toEqual(['published', '鸡肉']);
   });
 
   it('returns empty results with zero total pages when no rows match', () => {
@@ -514,7 +514,7 @@ describe('createRecipe', () => {
       {
         title: 'Tomato Pasta',
         coverImageName: 'cover-salad.png',
-        tags: ['easy', ' dinner '],
+        tags: ['家常菜', ' 猪肉 '],
         ingredientsJson: { type: 'doc', content: [] },
         ingredientsHtml: '<ul><li>Tomato - 2</li></ul>',
         ingredientsText: 'Tomato - 2',
@@ -532,7 +532,7 @@ describe('createRecipe', () => {
         description: null,
         coverImage: '/assets/recipes/cover-salad.png',
         category: null,
-        tags: ['easy', 'dinner'],
+        tags: ['家常菜', '猪肉'],
         ingredientsJson: { type: 'doc', content: [] },
         ingredientsHtml: '<ul><li>Tomato - 2</li></ul>',
         ingredientsText: 'Tomato - 2',
@@ -550,7 +550,7 @@ describe('createRecipe', () => {
       expect.objectContaining({
         id: 'tomato-pasta',
         cover_image: '/assets/recipes/cover-salad.png',
-        tags: '["easy","dinner"]',
+        tags: '["家常菜","猪肉"]',
         ingredients_json: '{"type":"doc","content":[]}',
         steps_json: '{"type":"doc","content":[{"type":"paragraph"}]}',
         source_type: 'manual',
@@ -571,7 +571,7 @@ describe('createRecipe', () => {
         coverImageName: 'ignored.png',
         category: 'Dinner',
         description: 'Simple baked fish.',
-        tags: ['published'],
+        tags: ['西式'],
         ingredientsJson: { type: 'doc' },
         ingredientsHtml: '',
         ingredientsText: '',
@@ -639,6 +639,40 @@ describe('createRecipe', () => {
         {
           title: 'Tag Failure',
           tags: ['valid', 123],
+          ingredientsJson: { type: 'doc' },
+          stepsJson: { type: 'doc' },
+        },
+        database,
+      ),
+    ).toThrow('Invalid recipe payload.');
+    expect(database.insertParams).toEqual([]);
+  });
+
+  it('rejects tags outside the fixed recipe tag set', () => {
+    const database = createMockDatabase();
+
+    expect(() =>
+      createRecipe(
+        {
+          title: 'Free Tag Failure',
+          tags: ['快手菜'],
+          ingredientsJson: { type: 'doc' },
+          stepsJson: { type: 'doc' },
+        },
+        database,
+      ),
+    ).toThrow('Invalid recipe payload.');
+    expect(database.insertParams).toEqual([]);
+  });
+
+  it('rejects more than three fixed tags', () => {
+    const database = createMockDatabase();
+
+    expect(() =>
+      createRecipe(
+        {
+          title: 'Too Many Tags',
+          tags: ['家常菜', '鸡肉', '猪肉', '牛肉'],
           ingredientsJson: { type: 'doc' },
           stepsJson: { type: 'doc' },
         },

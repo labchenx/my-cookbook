@@ -4,7 +4,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AppRoutes } from '../../app/AppRoutes';
 import { recipeCategories } from './recipesTypes';
 
-const soupTag = '\u6c64\u7c7b';
+const beefTag = '牛肉';
+const chickenTag = '鸡肉';
 const nextPageLabel = '\u4e0b\u4e00\u9875';
 const secondPageLabel = '\u8f6c\u5230\u7b2c 2 \u9875';
 const refreshingLabel = '\u6b63\u5728\u66f4\u65b0\u83dc\u8c31...';
@@ -15,7 +16,7 @@ const recipeApiItems = [
     title: 'Chocolate Mousse Cake',
     description: 'Silky chocolate mousse with a smooth finish.',
     coverImage: '/assets/recipes/cover-chocolate-mousse.png',
-    tags: ['\u751c\u54c1', 'easy'],
+    tags: ['甜品', '烘焙'],
     createdAt: '2026-04-12T10:00:00+08:00',
     status: 'published',
   },
@@ -24,7 +25,7 @@ const recipeApiItems = [
     title: 'Corn Soup',
     description: 'Warm and comforting sweet corn soup.',
     coverImage: '/assets/recipes/cover-corn-soup.png',
-    tags: [soupTag, 'nutrition'],
+    tags: ['家常菜', chickenTag],
     createdAt: '2026-04-12T07:00:00+08:00',
     status: 'published',
   },
@@ -33,7 +34,7 @@ const recipeApiItems = [
     title: 'Pumpkin Soup',
     description: 'A sweet pumpkin soup for cooler evenings.',
     coverImage: '/assets/recipes/cover-pumpkin-soup.png',
-    tags: [soupTag, 'nutrition'],
+    tags: ['家常菜', '猪肉'],
     createdAt: '2026-04-08T10:00:00+08:00',
     status: 'published',
   },
@@ -42,7 +43,7 @@ const recipeApiItems = [
     title: 'Salmon with Asparagus',
     description: 'Lean protein with roasted asparagus.',
     coverImage: '/assets/recipes/cover-salmon-asparagus.png',
-    tags: ['\u51cf\u8102', 'protein'],
+    tags: ['减脂'],
     createdAt: '2026-04-07T10:00:00+08:00',
     status: 'published',
   },
@@ -51,7 +52,7 @@ const recipeApiItems = [
     title: 'Creamy Mushroom Pasta',
     description: 'Mushroom pasta with a velvety cream sauce.',
     coverImage: '/assets/recipes/cover-mushroom-pasta.png',
-    tags: ['\u5bb6\u5e38\u83dc', 'quick'],
+    tags: ['西式', beefTag],
     createdAt: '2026-04-06T11:00:00+08:00',
     status: 'published',
   },
@@ -60,7 +61,7 @@ const recipeApiItems = [
     title: 'Teriyaki Chicken Rice',
     description: 'Sticky teriyaki glaze over juicy chicken.',
     coverImage: '/assets/recipes/cover-teriyaki-chicken.png',
-    tags: ['\u5bb6\u5e38\u83dc', 'rice'],
+    tags: ['家常菜', chickenTag],
     createdAt: '2026-04-05T18:00:00+08:00',
     status: 'published',
   },
@@ -69,7 +70,7 @@ const recipeApiItems = [
     title: 'Roasted Vegetable Salad',
     description: 'A crisp and balanced salad.',
     coverImage: '/assets/recipes/cover-salad.png',
-    tags: ['\u51cf\u8102', 'light'],
+    tags: ['减脂'],
     createdAt: '2026-04-05T11:00:00+08:00',
     status: 'published',
   },
@@ -78,7 +79,7 @@ const recipeApiItems = [
     title: 'Turkish Cabbage Rolls',
     description: 'Savory cabbage rolls with deep flavor.',
     coverImage: '/assets/recipes/cover-cabbage-rolls.png',
-    tags: ['\u5bb6\u5e38\u83dc', 'classic'],
+    tags: ['家常菜'],
     createdAt: '2026-04-04T20:00:00+08:00',
     status: 'published',
   },
@@ -87,7 +88,7 @@ const recipeApiItems = [
     title: 'Tomato Cheese Risotto',
     description: 'Tomato and cheese in a creamy baked rice.',
     coverImage: '/assets/recipes/cover-eggplant-risotto.png',
-    tags: ['\u5bb6\u5e38\u83dc', 'easy'],
+    tags: ['家常菜'],
     createdAt: '2026-04-04T12:00:00+08:00',
     status: 'published',
   },
@@ -96,7 +97,7 @@ const recipeApiItems = [
     title: 'Tomato Bruschetta',
     description: 'A bright starter for sharing.',
     coverImage: '/assets/recipes/cover-salad.png',
-    tags: ['\u5bb6\u5e38\u83dc', 'light'],
+    tags: ['西式'],
     createdAt: '2026-04-03T19:00:00+08:00',
     status: 'published',
   },
@@ -105,7 +106,7 @@ const recipeApiItems = [
     title: 'Berry Yogurt Cup',
     description: 'A quick breakfast dessert.',
     coverImage: '/assets/recipes/cover-chocolate-mousse.png',
-    tags: ['\u751c\u54c1', 'quick'],
+    tags: ['甜品'],
     createdAt: '2026-04-03T10:00:00+08:00',
     status: 'published',
   },
@@ -114,7 +115,7 @@ const recipeApiItems = [
     title: 'Miso Tofu Soup',
     description: 'A fast soup with mellow umami.',
     coverImage: '/assets/recipes/cover-corn-soup.png',
-    tags: [soupTag, 'quick'],
+    tags: ['家常菜'],
     createdAt: '2026-04-02T09:00:00+08:00',
     status: 'published',
   },
@@ -240,6 +241,9 @@ describe('RecipesPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, hidden: true })).toBeInTheDocument();
     expect(screen.getByRole('searchbox')).toBeInTheDocument();
+    for (const category of recipeCategories) {
+      expect(screen.getByRole('button', { name: category })).toBeInTheDocument();
+    }
     expect(await screen.findByText('Chocolate Mousse Cake')).toBeInTheDocument();
     expect(screen.getByText('Tomato Cheese Risotto')).toBeInTheDocument();
     expect(screen.queryByText('Tomato Bruschetta')).not.toBeInTheDocument();
@@ -272,17 +276,48 @@ describe('RecipesPage', () => {
     await screen.findByText('Chocolate Mousse Cake');
     await user.click(getPaginationButton(nextPageLabel));
     await screen.findByText('Tomato Bruschetta');
-    await user.click(screen.getByRole('button', { name: recipeCategories[4] }));
+    await user.click(screen.getByRole('button', { name: beefTag }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenLastCalledWith(
-        '/api/recipes?page=1&pageSize=9&sort=latest&tag=%E6%B1%A4%E7%B1%BB',
+        '/api/recipes?page=1&pageSize=9&sort=latest&tag=%E7%89%9B%E8%82%89',
         expect.any(Object),
       );
     });
 
-    expect(await screen.findByText('Corn Soup')).toBeInTheDocument();
-    expect(screen.getByText('Pumpkin Soup')).toBeInTheDocument();
+    expect(await screen.findByText('Creamy Mushroom Pasta')).toBeInTheDocument();
+    expect(screen.queryByText('Corn Soup')).not.toBeInTheDocument();
+  });
+
+  it('requests exact fixed meat tags from the filter bar', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await screen.findByText('Chocolate Mousse Cake');
+
+    await user.click(screen.getByRole('button', { name: '鸡肉' }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        '/api/recipes?page=1&pageSize=9&sort=latest&tag=%E9%B8%A1%E8%82%89',
+        expect.any(Object),
+      );
+    });
+
+    await user.click(screen.getByRole('button', { name: '猪肉' }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        '/api/recipes?page=1&pageSize=9&sort=latest&tag=%E7%8C%AA%E8%82%89',
+        expect.any(Object),
+      );
+    });
+
+    await user.click(screen.getByRole('button', { name: beefTag }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        '/api/recipes?page=1&pageSize=9&sort=latest&tag=%E7%89%9B%E8%82%89',
+        expect.any(Object),
+      );
+    });
   });
 
   it('resets to page 1 when search changes', async () => {
@@ -312,7 +347,7 @@ describe('RecipesPage', () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input);
 
-      if (url.includes('tag=%E6%B1%A4%E7%B1%BB')) {
+      if (url.includes('tag=%E7%89%9B%E8%82%89')) {
         return deferredResponse.promise;
       }
 
@@ -325,14 +360,14 @@ describe('RecipesPage', () => {
     renderApp();
 
     await screen.findByText('Chocolate Mousse Cake');
-    await user.click(screen.getByRole('button', { name: recipeCategories[4] }));
+    await user.click(screen.getByRole('button', { name: beefTag }));
 
     expect(screen.getByText('Chocolate Mousse Cake')).toBeInTheDocument();
     expect(screen.getByText(refreshingLabel)).toBeInTheDocument();
 
-    deferredResponse.resolve('/api/recipes?page=1&pageSize=9&sort=latest&tag=%E6%B1%A4%E7%B1%BB');
+    deferredResponse.resolve('/api/recipes?page=1&pageSize=9&sort=latest&tag=%E7%89%9B%E8%82%89');
 
-    expect(await screen.findByText('Corn Soup')).toBeInTheDocument();
+    expect(await screen.findByText('Creamy Mushroom Pasta')).toBeInTheDocument();
     expect(screen.queryByText('Chocolate Mousse Cake')).not.toBeInTheDocument();
   });
 

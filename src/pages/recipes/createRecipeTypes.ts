@@ -12,7 +12,6 @@ export type RecipeDraft = {
   coverImageName: string;
   coverImage: string | null;
   category: string;
-  tagInput: string;
   tags: string[];
   ingredientsJson: JSONContent;
   ingredientsHtml: string;

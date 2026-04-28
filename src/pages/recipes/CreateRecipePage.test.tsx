@@ -299,7 +299,7 @@ function emitSuccessfulStructuredParseFlow() {
       ingredients: ['pork 300g', 'pepper 4 pieces'],
       steps: ['cut pork and pepper', 'render pork fat', 'add pork and seasoning'],
       category: 'Home cooking',
-      tags: ['dinner', 'quick'],
+      tags: ['猪肉', '家常菜'],
       imagePrompt: 'Pepper pork cover photo',
       coverImageName: 'pepper-pork.png',
       coverImage: '/assets/recipes/pepper-pork.png',
@@ -426,8 +426,8 @@ describe('CreateRecipePage', () => {
     await user.click(await screen.findByRole('button', { name: '进入手动编辑' }));
 
     expect(await screen.findByDisplayValue('Pepper Pork')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Home cooking')).toBeInTheDocument();
-    expect(screen.getByText('dinner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '猪肉' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '家常菜' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('pork 300g')).toBeInTheDocument();
     expect(screen.getByText('add pork and seasoning')).toBeInTheDocument();
     expect(screen.getByTestId('recipe-cover-upload-preview')).toHaveAttribute(
@@ -444,8 +444,8 @@ describe('CreateRecipePage', () => {
         title: 'Pepper Pork',
         coverImageName: 'pepper-pork.png',
         coverImage: '/assets/recipes/pepper-pork.png',
-        category: 'Home cooking',
-        tags: ['dinner', 'quick'],
+        category: '猪肉',
+        tags: ['猪肉', '家常菜'],
         ingredientsText: expect.stringContaining('pork 300g'),
         stepsText: expect.stringContaining('add pork and seasoning'),
       }),
@@ -700,7 +700,8 @@ describe('CreateRecipePage', () => {
       expect.objectContaining({
         title: 'Sheet Pan Fish',
         description: null,
-        category: null,
+        category: '家常菜',
+        tags: ['家常菜'],
         status: 'published',
       }),
     );

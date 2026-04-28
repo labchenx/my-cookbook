@@ -1,3 +1,5 @@
+import { allRecipeTag, fixedRecipeTags, type RecipeFilterTag } from '../../domain/recipeTags';
+
 export type Recipe = {
   id: string;
   title: string;
@@ -10,19 +12,8 @@ export type Recipe = {
   category?: string;
 };
 
-export type RecipeCategory =
-  | '\u5168\u90e8'
-  | '\u5bb6\u5e38\u83dc'
-  | '\u751c\u54c1'
-  | '\u51cf\u8102'
-  | '\u6c64\u7c7b';
+export type RecipeCategory = RecipeFilterTag;
 
 export type SortOrder = 'latest' | 'oldest';
 
-export const recipeCategories: RecipeCategory[] = [
-  '\u5168\u90e8',
-  '\u5bb6\u5e38\u83dc',
-  '\u751c\u54c1',
-  '\u51cf\u8102',
-  '\u6c64\u7c7b',
-];
+export const recipeCategories: RecipeCategory[] = [allRecipeTag, ...fixedRecipeTags];

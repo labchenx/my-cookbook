@@ -5,6 +5,7 @@ import { FloatingActionButton } from '../../components/recipes/FloatingActionBut
 import { Navbar } from '../../components/recipes/Navbar';
 import { Pagination } from '../../components/recipes/Pagination';
 import { RecipeGrid } from '../../components/recipes/RecipeGrid';
+import { allRecipeTag } from '../../domain/recipeTags';
 import { recipeCategories } from './recipesTypes';
 import type { Recipe, RecipeCategory, SortOrder } from './recipesTypes';
 
@@ -33,7 +34,7 @@ const defaultPagination = {
 };
 
 const referenceNow = new Date('2026-04-12T12:00:00+08:00').getTime();
-const allCategory = '\u5168\u90e8';
+const allCategory = allRecipeTag;
 
 function formatRelativeTime(createdAt: string) {
   const diff = referenceNow - new Date(createdAt).getTime();
