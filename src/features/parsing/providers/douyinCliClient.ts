@@ -234,6 +234,35 @@ export function inferCliParsingStage(message: string): StageMapping | null {
 }
 
 export function extractTranscriptText(markdown: string): string {
+  const normalizedMarkdown = markdown.trim();
+  const metadataTableMatch = normalizedMarkdown.match(
+    /\r?\n\|\s*[^|\r\n]+\s*\|\s*[^|\r\n]+\s*\|\s*\r?\n\|[-\s|]+\|/,
+  );
+  const metadataTableIndex = metadataTableMatch?.index ?? -1;
+  const summaryText =
+    metadataTableIndex >= 0 ? normalizedMarkdown.slice(0, metadataTableIndex).trim() : '';
+  const markerStartIndex =
+    metadataTableIndex >= 0
+      ? normalizedMarkdown.indexOf('\n## ', metadataTableIndex)
+      : normalizedMarkdown.indexOf('\n## ');
+
+  if (summaryText && markerStartIndex >= 0) {
+    const markerEndIndex = normalizedMarkdown.indexOf('\n', markerStartIndex + 1);
+    const transcriptText =
+      markerEndIndex >= 0 ? normalizedMarkdown.slice(markerEndIndex + 1).trim() : '';
+
+    return [summaryText, transcriptText]
+      .filter((item) => item.length > 0)
+      .join('\n\n');
+  }
+
+  if (markerStartIndex >= 0) {
+    const markerEndIndex = normalizedMarkdown.indexOf('\n', markerStartIndex + 1);
+
+    return markerEndIndex >= 0
+      ? normalizedMarkdown.slice(markerEndIndex + 1).trim()
+      : '';
+  }
   const markers = ['## 文案内容'];
 
   for (const marker of markers) {

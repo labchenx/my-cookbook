@@ -209,5 +209,31 @@ describe('extractTranscriptText', () => {
   it('keeps the raw transcript content for the current public API', () => {
     expect(extractTranscriptText('# 标题\n\n## 文案内容\n\n文本内容')).toBe('文本内容');
   });
+
+  it('keeps recipe text before the generated metadata table', () => {
+    const markdown = [
+      '# 抹茶柚子巴斯克蛋糕',
+      '',
+      '【柚子酱】',
+      '[材料]：',
+      '鸡蛋：1个',
+      '[制作]：',
+      '1、搅拌均匀。',
+      '',
+      '| 属性 | 值 |',
+      '|------|----|',
+      '| 视频ID | `123` |',
+      '',
+      '---',
+      '',
+      '## 文案内容',
+      '',
+      '🎼 Yeah.',
+    ].join('\n');
+
+    expect(extractTranscriptText(markdown)).toContain('【柚子酱】');
+    expect(extractTranscriptText(markdown)).toContain('鸡蛋：1个');
+    expect(extractTranscriptText(markdown)).not.toContain('| 视频ID |');
+  });
 });
 
